@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ConnectWallet } from './ConnectWallet'
+import { Logo } from './Logo'
 
 const navItems = [
   { path: '/', label: '概览' },
@@ -18,7 +19,7 @@ export function Layout() {
     <div className="app">
       <header className="header">
         <div className="header-inner">
-          <h1 className="logo">CopyFlow</h1>
+          <Logo />
           <nav className="nav">
             {navItems.map((item) => (
               <Link
