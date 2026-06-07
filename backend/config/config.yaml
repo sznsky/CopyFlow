@@ -1,0 +1,42 @@
+server:
+  port: "8080"
+  mode: debug
+
+database:
+  dsn: "root:root@tcp(127.0.0.1:3306)/copyflow?charset=utf8mb4&parseTime=True&loc=Local"
+
+auth:
+  jwt_secret: "change-me-in-production"
+  wallet_encrypt_key: "0123456789abcdef0123456789abcdef"
+  nonce_expire_minutes: 10
+
+worker:
+  enabled: true
+  poll_interval_sec: 3
+  confirmations: 1
+
+chains:
+  bsc:
+    chain_id: 56
+    name: BSC
+    rpc_url: "https://bsc-dataseed.binance.org"
+    enabled: true
+    native_symbol: BNB
+    dex:
+      pancake_v2:
+        router: "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+        factory: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"
+        wrapped_native: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
+        enabled: true
+  ethereum:
+    chain_id: 1
+    name: Ethereum
+    rpc_url: "https://eth.llamarpc.com"
+    enabled: false
+    native_symbol: ETH
+    dex:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+        wrapped_native: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        enabled: false
