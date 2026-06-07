@@ -13,7 +13,7 @@ CopyFlow/
 └── remark.md     # 原始需求说明
 ```
 
-## 5 分钟上手
+## 
 
 **前置条件：** 本地 MySQL、Go 1.22+、Node.js 18+、MetaMask
 
