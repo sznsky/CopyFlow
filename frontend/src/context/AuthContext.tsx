@@ -13,6 +13,7 @@ interface AuthContextValue {
   user: User | null
   loading: boolean
   login: (address: string, message: string, signature: string) => Promise<void>
+  loginWithToken: (token: string) => Promise<void>
   logout: () => void
   refresh: () => Promise<void>
 }
@@ -32,7 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const me = await api.fetchMe()
-      setUser({ id: me.id, wallet_address: me.wallet_address })
+      setUser({
+        id: me.id,
+        wallet_address: me.wallet_address || '',
+        email: me.email || '',
+      })
     } catch {
       api.clearToken()
       setUser(null)
@@ -47,6 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (address: string, message: string, signature: string) => {
     const { token } = await api.verifyLogin(address, message, signature)
+    await loginWithToken(token)
+  }
+
+  const loginWithToken = async (token: string) => {
     api.setToken(token)
     await refresh()
   }
@@ -57,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refresh }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithToken, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   )

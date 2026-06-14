@@ -11,6 +11,7 @@ import (
 	"copyflow/internal/handler"
 	"copyflow/internal/middleware"
 	"copyflow/internal/store"
+	"copyflow/pkg/email"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,11 +33,28 @@ func main() {
 
 	jwt := auth.NewJWTManager(cfg.Auth.JWTSecret, 24*time.Hour)
 
+	mailer := email.NewSender(email.Config{
+		Enabled:  cfg.Email.Enabled,
+		Host:     cfg.Email.Host,
+		Port:     cfg.Email.Port,
+		Username: cfg.Email.Username,
+		Password: cfg.Email.Password,
+		From:     cfg.Email.From,
+	})
+
 	authH := handler.NewAuthHandler(st, jwt, "CopyFlow")
+	authEmailH := handler.NewAuthEmailHandler(st, jwt, mailer)
 	configH := handler.NewConfigHandler(st)
 	walletH := handler.NewWalletHandler(st, cfg.Auth.WalletEncryptKey)
 	tradeH := handler.NewTradeHandler(st)
 	metaH := handler.NewMetaHandler(cfg)
+
+	// 聪明钱处理器（如果启用）
+	var smartMoneyH *handler.SmartMoneyHandler
+	if cfg.SmartMoney.Enabled && cfg.Dune.Enabled {
+		smartMoneyH = handler.NewSmartMoneyHandler(st, cfg.Dune.APIKey, cfg.SmartMoney.ChainID)
+		log.Printf("[SmartMoney] Enabled for chain %d", cfg.SmartMoney.ChainID)
+	}
 
 	// 启动时校验链与 DEX 配置是否可用（不阻塞启动）
 	if _, err := bootstrap.BuildChains(cfg); err != nil {
@@ -57,6 +75,9 @@ func main() {
 	{
 		api.POST("/auth/nonce", authH.Nonce)
 		api.POST("/auth/verify", authH.Verify)
+		api.POST("/auth/email/send-code", authEmailH.SendEmailCode)
+		api.POST("/auth/email/register", authEmailH.EmailRegister)
+		api.POST("/auth/email/login", authEmailH.EmailLogin)
 
 		authed := api.Group("")
 		authed.Use(middleware.Auth(jwt))
@@ -70,6 +91,22 @@ func main() {
 			authed.POST("/wallets", walletH.Create)
 			authed.GET("/copy-trades", tradeH.ListCopyTrades)
 			authed.GET("/leader-trades", tradeH.ListLeaderTrades)
+
+			// 聪明钱 API
+			if smartMoneyH != nil {
+				authed.GET("/smart-wallets", smartMoneyH.GetTopWallets)
+				authed.GET("/token-signals", smartMoneyH.GetTopSignals)
+				authed.GET("/token-signals/:id/details", smartMoneyH.GetSignalDetails)
+				authed.GET("/wallet-history/:address", smartMoneyH.GetWalletHistory)
+
+				// 管理员接口
+				admin := authed.Group("/admin")
+				{
+					admin.POST("/sync", smartMoneyH.TriggerSync)
+					admin.POST("/calculate-scores", smartMoneyH.TriggerScoring)
+					admin.POST("/aggregate-signals", smartMoneyH.TriggerSignalAggregation)
+				}
+			}
 		}
 	}
 

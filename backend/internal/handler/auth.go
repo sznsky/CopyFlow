@@ -52,7 +52,8 @@ func (h *AuthHandler) Nonce(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	msg := auth.BuildSIWEMessage(h.domain, user.WalletAddress, nonce, time.Now())
+	wa := ptrStr(user.WalletAddress)
+	msg := auth.BuildSIWEMessage(h.domain, wa, nonce, time.Now())
 	c.JSON(http.StatusOK, nonceResponse{Nonce: nonce, Message: msg})
 }
 
@@ -90,7 +91,7 @@ func (h *AuthHandler) Verify(c *gin.Context) {
 	newNonce, _ := auth.GenerateNonce()
 	_, _ = h.store.UpsertUserNonce(addr, newNonce)
 
-	token, err := h.jwt.Issue(user.ID, user.WalletAddress)
+	token, err := h.jwt.Issue(user.ID, ptrStr(user.WalletAddress), ptrStr(user.Email))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to issue token"})
 		return
@@ -108,6 +109,14 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"id":             user.ID,
-		"wallet_address": user.WalletAddress,
+		"wallet_address": ptrStr(user.WalletAddress),
+		"email":          ptrStr(user.Email),
 	})
+}
+
+func ptrStr(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }

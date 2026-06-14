@@ -9,11 +9,14 @@ import (
 
 // Config 应用总配置，链和 DEX 可通过配置扩展。
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Auth     AuthConfig
-	Worker   WorkerConfig
-	Chains   []ChainConfig
+	Server     ServerConfig
+	Database   DatabaseConfig
+	Auth       AuthConfig
+	Email      EmailConfig
+	Worker     WorkerConfig
+	Dune       DuneConfig
+	SmartMoney SmartMoneyConfig
+	Chains     []ChainConfig
 }
 
 // ServerConfig HTTP 服务配置。
@@ -34,11 +37,39 @@ type AuthConfig struct {
 	NonceExpireMinutes int
 }
 
+// EmailConfig 邮件发送配置（未启用时验证码打印到日志）。
+type EmailConfig struct {
+	Enabled  bool
+	Host     string
+	Port     int
+	Username string
+	Password string
+	From     string
+}
+
 // WorkerConfig 链上监听 Worker 配置。
 type WorkerConfig struct {
 	Enabled         bool
 	PollIntervalSec int
 	Confirmations   uint64
+}
+
+// DuneConfig Dune Analytics API 配置。
+type DuneConfig struct {
+	APIKey  string
+	QueryID int
+	Enabled bool
+}
+
+// SmartMoneyConfig 聪明钱分析配置。
+type SmartMoneyConfig struct {
+	Enabled          bool
+	ChainID          int
+	MinAmountUSD     float64
+	TopWalletCount   int
+	MinWalletScore   float64
+	SignalDays       int
+	SyncIntervalHours int
 }
 
 // ChainConfig 单条链的 RPC 与 DEX 配置。
@@ -87,10 +118,32 @@ func Load() (*Config, error) {
 			WalletEncryptKey:   viper.GetString("auth.wallet_encrypt_key"),
 			NonceExpireMinutes: viper.GetInt("auth.nonce_expire_minutes"),
 		},
+		Email: EmailConfig{
+			Enabled:  viper.GetBool("email.enabled"),
+			Host:     viper.GetString("email.host"),
+			Port:     viper.GetInt("email.port"),
+			Username: viper.GetString("email.username"),
+			Password: viper.GetString("email.password"),
+			From:     viper.GetString("email.from"),
+		},
 		Worker: WorkerConfig{
 			Enabled:         viper.GetBool("worker.enabled"),
 			PollIntervalSec: viper.GetInt("worker.poll_interval_sec"),
 			Confirmations:   viper.GetUint64("worker.confirmations"),
+		},
+		Dune: DuneConfig{
+			APIKey:  viper.GetString("dune.api_key"),
+			QueryID: viper.GetInt("dune.query_id"),
+			Enabled: viper.GetBool("dune.enabled"),
+		},
+		SmartMoney: SmartMoneyConfig{
+			Enabled:          viper.GetBool("smartmoney.enabled"),
+			ChainID:          viper.GetInt("smartmoney.chain_id"),
+			MinAmountUSD:     viper.GetFloat64("smartmoney.min_amount_usd"),
+			TopWalletCount:   viper.GetInt("smartmoney.top_wallet_count"),
+			MinWalletScore:   viper.GetFloat64("smartmoney.min_wallet_score"),
+			SignalDays:       viper.GetInt("smartmoney.signal_days"),
+			SyncIntervalHours: viper.GetInt("smartmoney.sync_interval_hours"),
 		},
 	}
 
@@ -109,6 +162,19 @@ func setDefaults() {
 	viper.SetDefault("worker.enabled", true)
 	viper.SetDefault("worker.poll_interval_sec", 3)
 	viper.SetDefault("worker.confirmations", 1)
+
+	// Dune Analytics defaults
+	viper.SetDefault("dune.enabled", false)
+	viper.SetDefault("dune.query_id", 0)
+
+	// Smart Money defaults
+	viper.SetDefault("smartmoney.enabled", false)
+	viper.SetDefault("smartmoney.chain_id", 1)
+	viper.SetDefault("smartmoney.min_amount_usd", 1000)
+	viper.SetDefault("smartmoney.top_wallet_count", 20)
+	viper.SetDefault("smartmoney.min_wallet_score", 60)
+	viper.SetDefault("smartmoney.signal_days", 3)
+	viper.SetDefault("smartmoney.sync_interval_hours", 24)
 
 	// BSC mainnet defaults (MVP primary chain)
 	viper.SetDefault("chains.bsc.chain_id", 56)

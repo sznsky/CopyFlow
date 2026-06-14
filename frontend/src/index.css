@@ -1,4 +1,4 @@
-/* 币安风格主题：白底、黑字、黄色强调 */
+/* CopyFlow 主题：白底、黑字、蓝色主基调 */
 :root {
   --bg: #ffffff;
   --surface: #fafafa;
@@ -8,9 +8,9 @@
   --text: #1e2329;
   --text-secondary: #474d57;
   --muted: #707a8a;
-  --brand: #f0b90b;
-  --brand-hover: #e6ae0a;
-  --brand-light: #fef6d8;
+  --brand: #6d78d5;
+  --brand-hover: #5a66c4;
+  --brand-light: #eef0fb;
   --danger: #cf304a;
   --success: #0ecb81;
   --radius: 4px;
@@ -144,7 +144,7 @@ a:hover { color: var(--brand-hover); }
 
 .btn-primary {
   background: var(--brand);
-  color: var(--text);
+  color: #ffffff;
 }
 .btn-primary:hover:not(:disabled) { background: var(--brand-hover); }
 
@@ -279,7 +279,7 @@ a:hover { color: var(--brand-hover); }
   border: 1px solid var(--border);
 }
 .badge-success { background: #e6fff6; color: #0ecb81; border-color: #b7f5d8; }
-.badge-pending { background: var(--brand-light); color: #b8860b; border-color: #f0d878; }
+.badge-pending { background: var(--brand-light); color: #4a56b8; border-color: #c5cae8; }
 .badge-submitted { background: #eef6ff; color: #328dfd; border-color: #b3d4ff; }
 .badge-failed { background: #fff0f0; color: var(--danger); border-color: #ffc9c9; }
 .badge-skipped { background: var(--surface); color: var(--muted); }
@@ -380,6 +380,165 @@ a:hover { color: var(--brand-hover); }
 .table a.mono:hover {
   color: var(--brand-hover);
   border-bottom-color: var(--brand);
+}
+
+/* 登录注册弹窗 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal {
+  background: var(--bg);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.modal-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+}
+
+.modal-close, .modal-back {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--muted);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-back { font-size: 18px; }
+
+.modal-sub {
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+}
+.link-btn:hover { color: var(--brand-hover); }
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.modal-field input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-size: 14px;
+  color: var(--text);
+}
+.modal-field input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+.btn-block { width: 100%; margin-top: 8px; padding: 12px; }
+
+.modal-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.modal-divider::before, .modal-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.wallet-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.wallet-option:hover { border-color: var(--brand); }
+.wallet-icon { width: 40px; height: 40px; }
+
+.code-inputs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 24px 0 12px;
+}
+.code-inputs input {
+  width: 44px;
+  height: 48px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.code-inputs input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+.code-actions {
+  text-align: right;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.modal-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 12px;
 }
 
 @media (max-width: 768px) {

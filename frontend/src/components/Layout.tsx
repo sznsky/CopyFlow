@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ConnectWallet } from './ConnectWallet'
+import { AuthButtons } from './AuthButtons'
 import { Logo } from './Logo'
 
 const navItems = [
@@ -8,6 +8,8 @@ const navItems = [
   { path: '/configs', label: '跟单配置' },
   { path: '/wallets', label: '跟单钱包' },
   { path: '/trades', label: '交易记录' },
+  { path: '/smart-wallets', label: '聪明钱包' },
+  { path: '/token-signals', label: '代币信号' },
 ]
 
 /** 应用主布局：顶栏导航 + 内容区 */
@@ -34,15 +36,16 @@ export function Layout() {
           <div className="header-actions">
             {user ? (
               <>
-                <span className="wallet-badge" title={user.wallet_address}>
-                  {user.wallet_address.slice(0, 6)}...{user.wallet_address.slice(-4)}
+                <span className="wallet-badge" title={user.email || user.wallet_address}>
+                  {user.email ||
+                    (user.wallet_address
+                      ? `${user.wallet_address.slice(0, 6)}...${user.wallet_address.slice(-4)}`
+                      : '用户')}
                 </span>
-                <button className="btn btn-ghost" onClick={logout}>
-                  退出
-                </button>
+                <button className="btn btn-ghost" onClick={logout}>退出</button>
               </>
             ) : (
-              <ConnectWallet />
+              <AuthButtons />
             )}
           </div>
         </div>

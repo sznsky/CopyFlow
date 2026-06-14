@@ -56,7 +56,28 @@ export async function verifyLogin(address: string, message: string, signature: s
 }
 
 export async function fetchMe() {
-  return request<{ id: number; wallet_address: string }>('/api/me')
+  return request<{ id: number; wallet_address: string; email: string }>('/api/me')
+}
+
+export async function sendEmailCode(email: string, purpose = 'register') {
+  return request<{ ok: boolean; message: string }>('/api/auth/email/send-code', {
+    method: 'POST',
+    body: JSON.stringify({ email, purpose }),
+  })
+}
+
+export async function emailRegister(email: string, code: string, password: string) {
+  return request<{ token: string }>('/api/auth/email/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, code, password }),
+  })
+}
+
+export async function emailLogin(email: string, password: string) {
+  return request<{ token: string }>('/api/auth/email/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
 }
 
 // --- 元信息 ---

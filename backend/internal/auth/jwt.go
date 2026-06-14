@@ -7,10 +7,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Claims JWT 载荷，包含用户 ID 与钱包地址。
+// Claims JWT 载荷。
 type Claims struct {
 	UserID        uint64 `json:"user_id"`
 	WalletAddress string `json:"wallet_address"`
+	Email         string `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -26,11 +27,12 @@ func NewJWTManager(secret string, ttl time.Duration) *JWTManager {
 }
 
 // Issue 签发 JWT Token。
-func (m *JWTManager) Issue(userID uint64, walletAddress string) (string, error) {
+func (m *JWTManager) Issue(userID uint64, walletAddress, email string) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		UserID:        userID,
 		WalletAddress: walletAddress,
+		Email:         email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(m.ttl)),
 			IssuedAt:  jwt.NewNumericDate(now),

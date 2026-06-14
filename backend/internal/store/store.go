@@ -36,11 +36,18 @@ func (s *Store) DB() *gorm.DB {
 func (s *Store) AutoMigrate() error {
 	return s.db.AutoMigrate(
 		&model.User{},
+		&model.EmailVerification{},
 		&model.CopyWallet{},
 		&model.CopyConfig{},
 		&model.LeaderTrade{},
 		&model.CopyTrade{},
 		&model.ChainCursor{},
+		// Smart Money models
+		&model.SmartWallet{},
+		&model.WalletTrade{},
+		&model.TokenSignal{},
+		&model.TokenSignalDetail{},
+		&model.DuneSyncLog{},
 	)
 }
 
@@ -72,7 +79,8 @@ func (s *Store) UpsertUserNonce(address, nonce string) (*model.User, error) {
 	var u model.User
 	err := s.db.Where("wallet_address = ?", addr).First(&u).Error
 	if err == gorm.ErrRecordNotFound {
-		u = model.User{WalletAddress: addr, Nonce: nonce}
+		wa := addr
+		u = model.User{WalletAddress: &wa, Nonce: nonce}
 		if err := s.db.Create(&u).Error; err != nil {
 			return nil, err
 		}
@@ -306,4 +314,50 @@ func (s *Store) DistinctActiveLeaders() (map[int][]string, error) {
 		result[r.ChainID] = append(result[r.ChainID], strings.ToLower(r.LeaderAddress))
 	}
 	return result, nil
+}
+
+// --- Email Auth ---
+
+// GetUserByEmail 按邮箱查询用户。
+func (s *Store) GetUserByEmail(email string) (*model.User, error) {
+	var u model.User
+	err := s.db.Where("email = ?", strings.ToLower(email)).First(&u).Error
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+// CreateEmailUser 创建邮箱注册用户。
+func (s *Store) CreateEmailUser(email, passwordHash string) (*model.User, error) {
+	em := strings.ToLower(email)
+	u := &model.User{Email: &em, PasswordHash: passwordHash}
+	if err := s.db.Create(u).Error; err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
+// CreateEmailVerification 保存邮箱验证码。
+func (s *Store) CreateEmailVerification(v *model.EmailVerification) error {
+	v.Email = strings.ToLower(v.Email)
+	return s.db.Create(v).Error
+}
+
+// FindValidEmailCode 查找未过期的验证码。
+func (s *Store) FindValidEmailCode(email, code, purpose string) (*model.EmailVerification, error) {
+	var v model.EmailVerification
+	err := s.db.Where(
+		"email = ? AND code = ? AND purpose = ? AND used = ? AND expires_at > NOW(3)",
+		strings.ToLower(email), code, purpose, false,
+	).Order("id DESC").First(&v).Error
+	if err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
+
+// MarkEmailCodeUsed 标记验证码已使用。
+func (s *Store) MarkEmailCodeUsed(id uint64) error {
+	return s.db.Model(&model.EmailVerification{}).Where("id = ?", id).Update("used", true).Error
 }

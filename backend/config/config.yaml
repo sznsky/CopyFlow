@@ -10,6 +10,31 @@ auth:
   wallet_encrypt_key: "0123456789abcdef0123456789abcdef"
   nonce_expire_minutes: 10
 
+# Dune Analytics API（聪明钱分析）
+dune:
+  api_key: "your-dune-api-key-here"
+  query_id: 1234567  # Uniswap 交易查询 ID
+  enabled: false
+
+# 聪明钱配置
+smartmoney:
+  enabled: false
+  chain_id: 1  # Ethereum
+  min_amount_usd: 1000
+  top_wallet_count: 20
+  min_wallet_score: 60
+  signal_days: 3
+  sync_interval_hours: 24
+
+# 邮件（MVP 默认关闭，验证码打印到 API 日志）
+email:
+  enabled: false
+  host: smtp.gmail.com
+  port: 587
+  username: ""
+  password: ""
+  from: "noreply@copyflow.local"
+
 worker:
   enabled: true
   poll_interval_sec: 3
