@@ -146,6 +146,43 @@ func (c *Client) GetExecutionStatus(executionID string) (*GetExecutionStatusResp
 	return &result, nil
 }
 
+// GetResults 获取查询结果数据。
+func (c *Client) GetResults(executionID string) (*QueryResult, error) {
+	url := fmt.Sprintf("%s/execution/%s/results", baseURL, executionID)
+	
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	
+	req.Header.Set("X-Dune-API-Key", c.apiKey)
+	
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("execute request: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+	
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+	}
+	
+	// Dune API 将 rows/metadata 包在 result 字段内
+	var wrapped struct {
+		Result QueryResult `json:"result"`
+	}
+	if err := json.Unmarshal(body, &wrapped); err != nil {
+		return nil, fmt.Errorf("unmarshal response: %w", err)
+	}
+	
+	return &wrapped.Result, nil
+}
+
 // GetExecutionResults 获取查询执行结果（轮询直到完成）。
 func (c *Client) GetExecutionResults(executionID string, maxWaitTime time.Duration) (*QueryResult, error) {
 	startTime := time.Now()
@@ -163,10 +200,7 @@ func (c *Client) GetExecutionResults(executionID string, maxWaitTime time.Durati
 		
 		switch status.State {
 		case "QUERY_STATE_COMPLETED":
-			if status.Result == nil {
-				return nil, fmt.Errorf("query completed but no result")
-			}
-			return status.Result, nil
+			return c.GetResults(executionID)
 		case "QUERY_STATE_FAILED":
 			return nil, fmt.Errorf("query execution failed")
 		case "QUERY_STATE_CANCELLED":

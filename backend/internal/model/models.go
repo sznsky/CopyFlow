@@ -145,6 +145,7 @@ type WalletTrade struct {
 	BlockNumber     uint64          `json:"block_number"`
 	BlockTime       time.Time       `gorm:"index:idx_block_time" json:"block_time"`
 	DEXName         string          `gorm:"size:32" json:"dex_name"`
+	DEXVersion      string          `gorm:"size:8;column:dex_version" json:"dex_version"`
 	PoolAddress     string          `gorm:"size:42" json:"pool_address"`
 	TokenIn         string          `gorm:"size:42" json:"token_in"`
 	TokenOut        string          `gorm:"size:42;uniqueIndex:uk_tx" json:"token_out"`
@@ -154,8 +155,8 @@ type WalletTrade struct {
 	AmountOut       decimal.Decimal `gorm:"type:decimal(36,18)" json:"amount_out"`
 	AmountUSD       decimal.Decimal `gorm:"type:decimal(36,2);index:idx_amount" json:"amount_usd"`
 	IsBuy           bool            `json:"is_buy"`
-	PNLUSD          *decimal.Decimal `gorm:"type:decimal(36,18)" json:"pnl_usd"`
-	PNLPercent      *decimal.Decimal `gorm:"type:decimal(10,2)" json:"pnl_percent"`
+	PnlUSD          *decimal.Decimal `gorm:"column:pnl_usd;type:decimal(36,18)" json:"pnl_usd"`
+	PnlPercent      *decimal.Decimal `gorm:"column:pnl_percent;type:decimal(10,2)" json:"pnl_percent"`
 	HoldingDurationHours *int       `json:"holding_duration_hours"`
 	CreatedAt       time.Time       `json:"created_at"`
 }

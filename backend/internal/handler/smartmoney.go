@@ -4,7 +4,9 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
+	"copyflow/internal/model"
 	"copyflow/internal/smartmoney"
 	"copyflow/internal/store"
 
@@ -129,9 +131,9 @@ func (h *SmartMoneyHandler) GetWalletHistory(c *gin.Context) {
 		limit = 200
 	}
 	
-	var trades []interface{}
-	err = h.service.Store().DB.
-		Where("wallet_address = ?", walletAddr).
+	var trades []model.WalletTrade
+	err = h.service.Store().DB().
+		Where("wallet_address = ?", strings.ToLower(walletAddr)).
 		Order("block_time DESC").
 		Limit(limit).
 		Find(&trades).Error
@@ -154,6 +156,7 @@ func (h *SmartMoneyHandler) TriggerSync(c *gin.Context) {
 	type SyncRequest struct {
 		QueryID      int     `json:"query_id" binding:"required"`
 		MinAmountUSD float64 `json:"min_amount_usd" binding:"required,min=0"`
+		DaysBack     int     `json:"days_back" binding:"omitempty,min=1"`
 	}
 	
 	var req SyncRequest
@@ -162,9 +165,14 @@ func (h *SmartMoneyHandler) TriggerSync(c *gin.Context) {
 		return
 	}
 	
+	// 默认值：180天（6个月）
+	if req.DaysBack == 0 {
+		req.DaysBack = 180
+	}
+	
 	// 异步执行同步
 	go func() {
-		if err := h.service.SyncTradesFromDune(req.QueryID, req.MinAmountUSD); err != nil {
+		if err := h.service.SyncTradesFromDune(req.QueryID, req.MinAmountUSD, req.DaysBack); err != nil {
 			// 日志已在 service 中记录
 		}
 	}()

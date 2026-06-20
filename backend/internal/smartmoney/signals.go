@@ -41,7 +41,7 @@ func (s *Service) AggregateTokenSignals(days int) error {
 	
 	// 获取这些钱包在指定时间段内的买入交易
 	var buyTrades []model.WalletTrade
-	err = s.store.DB.Where("wallet_address IN ? AND chain_id = ? AND is_buy = ? AND block_time >= ? AND block_time <= ?",
+	err = s.store.DB().Where("wallet_address IN ? AND chain_id = ? AND is_buy = ? AND block_time >= ? AND block_time <= ?",
 		walletAddrs, s.chainID, true, startDate, endDate).
 		Order("block_time DESC").
 		Find(&buyTrades).Error
@@ -124,19 +124,19 @@ func (s *Service) AggregateTokenSignals(days int) error {
 		
 		// Upsert
 		var existing model.TokenSignal
-		err := s.store.DB.Where("token_address = ? AND chain_id = ? AND signal_start_date = ?",
+		err := s.store.DB().Where("token_address = ? AND chain_id = ? AND signal_start_date = ?",
 			tokenAddr, s.chainID, startDate).
 			First(&existing).Error
 		
 		if err != nil {
 			// 不存在，创建新记录
-			if err := s.store.DB.Create(signal).Error; err != nil {
+			if err := s.store.DB().Create(signal).Error; err != nil {
 				log.Printf("[SmartMoney] Failed to create signal for token %s: %v", tokenAddr, err)
 				continue
 			}
 		} else {
 			// 已存在，更新
-			if err := s.store.DB.Model(&existing).Updates(signal).Error; err != nil {
+			if err := s.store.DB().Model(&existing).Updates(signal).Error; err != nil {
 				log.Printf("[SmartMoney] Failed to update signal for token %s: %v", tokenAddr, err)
 				continue
 			}
@@ -256,7 +256,7 @@ func (s *Service) calculateConsensusScore(agg *TokenAggregation, totalTopWallets
 // saveSignalDetails 保存信号详情。
 func (s *Service) saveSignalDetails(signalID uint64, agg *TokenAggregation) error {
 	// 先删除旧的详情
-	s.store.DB.Where("signal_id = ?", signalID).Delete(&model.TokenSignalDetail{})
+	s.store.DB().Where("signal_id = ?", signalID).Delete(&model.TokenSignalDetail{})
 	
 	// 插入新的详情
 	for _, walletBuy := range agg.WalletBuys {
@@ -270,7 +270,7 @@ func (s *Service) saveSignalDetails(signalID uint64, agg *TokenAggregation) erro
 				BuyTime:       trade.BlockTime,
 			}
 			
-			if err := s.store.DB.Create(detail).Error; err != nil {
+			if err := s.store.DB().Create(detail).Error; err != nil {
 				return fmt.Errorf("create signal detail: %w", err)
 			}
 		}
@@ -283,7 +283,7 @@ func (s *Service) saveSignalDetails(signalID uint64, agg *TokenAggregation) erro
 func (s *Service) GetTopSignals(limit int, minConsensusScore float64) ([]model.TokenSignal, error) {
 	var signals []model.TokenSignal
 	
-	query := s.store.DB.Where("chain_id = ?", s.chainID)
+	query := s.store.DB().Where("chain_id = ?", s.chainID)
 	
 	if minConsensusScore > 0 {
 		query = query.Where("consensus_score >= ?", minConsensusScore)
@@ -291,7 +291,7 @@ func (s *Service) GetTopSignals(limit int, minConsensusScore float64) ([]model.T
 	
 	// 获取最新周期的信号
 	var latestStartDate time.Time
-	s.store.DB.Model(&model.TokenSignal{}).
+	s.store.DB().Model(&model.TokenSignal{}).
 		Where("chain_id = ?", s.chainID).
 		Select("MAX(signal_start_date)").
 		Scan(&latestStartDate)
@@ -315,7 +315,7 @@ func (s *Service) GetTopSignals(limit int, minConsensusScore float64) ([]model.T
 func (s *Service) GetSignalDetails(signalID uint64) ([]model.TokenSignalDetail, error) {
 	var details []model.TokenSignalDetail
 	
-	err := s.store.DB.Where("signal_id = ?", signalID).
+	err := s.store.DB().Where("signal_id = ?", signalID).
 		Order("wallet_score DESC, buy_time DESC").
 		Find(&details).Error
 	

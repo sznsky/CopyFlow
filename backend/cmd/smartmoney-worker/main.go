@@ -57,7 +57,7 @@ func runFullCycle(service *smartmoney.Service, cfg *config.Config) {
 
 	// 1. 从 Dune 同步交易数据
 	log.Println("[SmartMoney Worker] Step 1: Syncing trades from Dune...")
-	if err := service.SyncTradesFromDune(cfg.Dune.QueryID, cfg.SmartMoney.MinAmountUSD); err != nil {
+	if err := service.SyncTradesFromDune(cfg.Dune.QueryID, cfg.SmartMoney.MinAmountUSD, cfg.SmartMoney.DaysBack); err != nil {
 		log.Printf("[SmartMoney Worker] ERROR: Failed to sync trades: %v", err)
 	} else {
 		log.Println("[SmartMoney Worker] Step 1: ✓ Trades synced")

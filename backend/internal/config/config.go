@@ -66,9 +66,10 @@ type SmartMoneyConfig struct {
 	Enabled          bool
 	ChainID          int
 	MinAmountUSD     float64
+	DaysBack         int     // Dune 查询历史天数
 	TopWalletCount   int
 	MinWalletScore   float64
-	SignalDays       int
+	SignalDays       int     // 信号聚合分析天数
 	SyncIntervalHours int
 }
 
@@ -140,6 +141,7 @@ func Load() (*Config, error) {
 			Enabled:          viper.GetBool("smartmoney.enabled"),
 			ChainID:          viper.GetInt("smartmoney.chain_id"),
 			MinAmountUSD:     viper.GetFloat64("smartmoney.min_amount_usd"),
+			DaysBack:         viper.GetInt("smartmoney.days_back"),
 			TopWalletCount:   viper.GetInt("smartmoney.top_wallet_count"),
 			MinWalletScore:   viper.GetFloat64("smartmoney.min_wallet_score"),
 			SignalDays:       viper.GetInt("smartmoney.signal_days"),
@@ -171,6 +173,7 @@ func setDefaults() {
 	viper.SetDefault("smartmoney.enabled", false)
 	viper.SetDefault("smartmoney.chain_id", 1)
 	viper.SetDefault("smartmoney.min_amount_usd", 1000)
+	viper.SetDefault("smartmoney.days_back", 180)
 	viper.SetDefault("smartmoney.top_wallet_count", 20)
 	viper.SetDefault("smartmoney.min_wallet_score", 60)
 	viper.SetDefault("smartmoney.signal_days", 3)

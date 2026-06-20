@@ -137,6 +137,11 @@ SELECT
     block_number,
     block_time,
     dex_name,
+    CASE
+        WHEN dex_name LIKE '%v3%' THEN 'v3'
+        WHEN dex_name LIKE '%v2%' THEN 'v2'
+        ELSE NULL
+    END AS dex_version,
     pool_address,
     token_in,
     token_out,

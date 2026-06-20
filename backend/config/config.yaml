@@ -12,19 +12,20 @@ auth:
 
 # Dune Analytics API（聪明钱分析）
 dune:
-  api_key: "your-dune-api-key-here"
-  query_id: 1234567  # Uniswap 交易查询 ID
-  enabled: false
+  api_key: "sqKRtYDjhXqbk7XvXmI0PgVR7fUCITlp"
+  query_id: 7727110  # Uniswap 交易查询 ID
+  enabled: true
 
 # 聪明钱配置
 smartmoney:
-  enabled: false
+  enabled: true
   chain_id: 1  # Ethereum
-  min_amount_usd: 1000
+  min_amount_usd: 10000  # 10000+ USD 才算"聪明钱"大户交易
+  days_back: 1           # 同步天数；PNL 需覆盖持仓周期，卖出匹配不到买入时可增大（如 30）
   top_wallet_count: 20
   min_wallet_score: 60
-  signal_days: 3
-  sync_interval_hours: 24
+  signal_days: 3         # 信号聚合分析最近N天
+  sync_interval_hours: 24  # 每天运行一次
 
 # 邮件（MVP 默认关闭，验证码打印到 API 日志）
 email:

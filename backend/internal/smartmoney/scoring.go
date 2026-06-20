@@ -1,6 +1,7 @@
 package smartmoney
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -9,6 +10,7 @@ import (
 	"copyflow/internal/model"
 
 	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
 // CalculateWalletScores 计算所有钱包的评分。
@@ -21,7 +23,7 @@ func (s *Service) CalculateWalletScores() error {
 	
 	// 获取在评估周期内有交易的所有钱包
 	var walletAddresses []string
-	err := s.store.DB.Model(&model.WalletTrade{}).
+	err := s.store.DB().Model(&model.WalletTrade{}).
 		Where("chain_id = ? AND block_time >= ? AND block_time <= ?",
 			s.chainID, startDate, endDate).
 		Distinct("wallet_address").
@@ -53,7 +55,7 @@ func (s *Service) CalculateWalletScores() error {
 func (s *Service) calculateSingleWalletScore(walletAddr string, startDate, endDate time.Time) error {
 	// 获取钱包的所有交易
 	var trades []model.WalletTrade
-	err := s.store.DB.Where("wallet_address = ? AND chain_id = ? AND block_time >= ? AND block_time <= ?",
+	err := s.store.DB().Where("wallet_address = ? AND chain_id = ? AND block_time >= ? AND block_time <= ?",
 		walletAddr, s.chainID, startDate, endDate).
 		Order("block_time ASC").
 		Find(&trades).Error
@@ -80,8 +82,8 @@ func (s *Service) calculateSingleWalletScore(walletAddr string, startDate, endDa
 		totalVolume = totalVolume.Add(trade.AmountUSD)
 		
 		// 计算盈亏
-		if trade.PNLUSD != nil {
-			pnl := *trade.PNLUSD
+		if trade.PnlUSD != nil {
+			pnl := *trade.PnlUSD
 			totalPNL = totalPNL.Add(pnl)
 			cumPNL = cumPNL.Add(pnl)
 			pnlHistory = append(pnlHistory, cumPNL)
@@ -117,11 +119,11 @@ func (s *Service) calculateSingleWalletScore(walletAddr string, startDate, endDa
 		avgLoss := decimal.Zero
 		
 		for _, trade := range trades {
-			if trade.PNLUSD != nil {
-				if trade.PNLUSD.GreaterThan(decimal.Zero) {
-					avgWin = avgWin.Add(*trade.PNLUSD)
-				} else if trade.PNLUSD.LessThan(decimal.Zero) {
-					avgLoss = avgLoss.Add(trade.PNLUSD.Abs())
+			if trade.PnlUSD != nil {
+				if trade.PnlUSD.GreaterThan(decimal.Zero) {
+					avgWin = avgWin.Add(*trade.PnlUSD)
+				} else if trade.PnlUSD.LessThan(decimal.Zero) {
+					avgLoss = avgLoss.Add(trade.PnlUSD.Abs())
 				}
 			}
 		}
@@ -198,7 +200,7 @@ func (s *Service) calculateSingleWalletScore(walletAddr string, startDate, endDa
 	}
 	
 	// Upsert
-	err = s.store.DB.Where("wallet_address = ? AND chain_id = ?", walletAddr, s.chainID).
+	err = s.store.DB().Where("wallet_address = ? AND chain_id = ?", walletAddr, s.chainID).
 		Assign(wallet).
 		FirstOrCreate(&model.SmartWallet{}).Error
 	
@@ -332,7 +334,7 @@ func (s *Service) isMainstreamToken(tokenAddr string) bool {
 func (s *Service) updateWalletRankings() error {
 	// 获取所有钱包并按得分排序
 	var wallets []model.SmartWallet
-	err := s.store.DB.Where("chain_id = ?", s.chainID).
+	err := s.store.DB().Where("chain_id = ?", s.chainID).
 		Order("score DESC, total_pnl DESC").
 		Find(&wallets).Error
 	
@@ -345,7 +347,7 @@ func (s *Service) updateWalletRankings() error {
 		rank := i + 1
 		isTop := rank <= 20
 		
-		err := s.store.DB.Model(&wallet).Updates(map[string]interface{}{
+		err := s.store.DB().Model(&wallet).Updates(map[string]interface{}{
 			"rank_position": rank,
 			"is_top_wallet": isTop,
 		}).Error
@@ -364,7 +366,7 @@ func (s *Service) updateWalletRankings() error {
 func (s *Service) GetTopWallets(limit int, minScore float64) ([]model.SmartWallet, error) {
 	var wallets []model.SmartWallet
 	
-	query := s.store.DB.Where("chain_id = ?", s.chainID)
+	query := s.store.DB().Where("chain_id = ?", s.chainID)
 	
 	if minScore > 0 {
 		query = query.Where("score >= ?", minScore)
@@ -387,7 +389,7 @@ func (s *Service) CalculatePNLForTrades() error {
 	
 	// 获取所有卖出交易（未计算盈亏的）
 	var sellTrades []model.WalletTrade
-	err := s.store.DB.Where("chain_id = ? AND is_buy = ? AND pnl_usd IS NULL",
+	err := s.store.DB().Where("chain_id = ? AND is_buy = ? AND pnl_usd IS NULL",
 		s.chainID, false).
 		Order("block_time ASC").
 		Find(&sellTrades).Error
@@ -398,22 +400,24 @@ func (s *Service) CalculatePNLForTrades() error {
 	
 	log.Printf("[SmartMoney] Found %d sell trades to calculate PNL", len(sellTrades))
 	
+	matched := 0
+	skipped := 0
+	
 	for _, sellTrade := range sellTrades {
 		// 查找对应的买入交易（FIFO）
 		var buyTrade model.WalletTrade
-		err := s.store.DB.Where("wallet_address = ? AND token_out = ? AND is_buy = ? AND block_time < ?",
-			sellTrade.WalletAddress, sellTrade.TokenIn, true, sellTrade.BlockTime).
+		err := s.store.DB().Where(
+			"wallet_address = ? AND chain_id = ? AND token_out = ? AND is_buy = ? AND block_time < ?",
+			sellTrade.WalletAddress, s.chainID, sellTrade.TokenIn, true, sellTrade.BlockTime).
 			Order("block_time ASC").
 			First(&buyTrade).Error
 		
 		if err != nil {
-			// 找不到对应的买入交易，跳过
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				skipped++
+			}
 			continue
 		}
-		
-		// 计算盈亏
-		buyPrice := buyTrade.AmountIn.Div(buyTrade.AmountOut)  // 单价
-		sellPrice := sellTrade.AmountOut.Div(sellTrade.AmountIn) // 单价
 		
 		// 盈亏（USD）
 		pnlUSD := sellTrade.AmountUSD.Sub(buyTrade.AmountUSD)
@@ -428,7 +432,7 @@ func (s *Service) CalculatePNLForTrades() error {
 		holdingHours := int(math.Round(sellTrade.BlockTime.Sub(buyTrade.BlockTime).Hours()))
 		
 		// 更新卖出交易的盈亏信息
-		err = s.store.DB.Model(&sellTrade).Updates(map[string]interface{}{
+		err = s.store.DB().Model(&sellTrade).Updates(map[string]interface{}{
 			"pnl_usd":                pnlUSD,
 			"pnl_percent":            pnlPercent,
 			"holding_duration_hours": holdingHours,
@@ -436,9 +440,12 @@ func (s *Service) CalculatePNLForTrades() error {
 		
 		if err != nil {
 			log.Printf("[SmartMoney] Failed to update PNL for trade %s: %v", sellTrade.TxHash, err)
+			continue
 		}
+		matched++
 	}
 	
-	log.Println("[SmartMoney] PNL calculation completed")
+	log.Printf("[SmartMoney] PNL calculation completed: %d updated, %d skipped (no matching buy in DB; increase days_back for longer history)",
+		matched, skipped)
 	return nil
 }
