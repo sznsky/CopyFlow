@@ -2,7 +2,6 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"copyflow/internal/auth"
@@ -12,6 +11,7 @@ import (
 	"copyflow/internal/middleware"
 	"copyflow/internal/store"
 	"copyflow/pkg/email"
+	"copyflow/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,15 +20,21 @@ import (
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
+
+	// 初始化 logger
+	if err := logger.Init(cfg.Server.Mode); err != nil {
+		panic(err)
+	}
+	defer logger.Sync()
 
 	st, err := store.New(cfg.Database.DSN)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("Failed to connect database", "error", err)
 	}
 	if err := st.AutoMigrate(); err != nil {
-		log.Fatal(err)
+		logger.Fatal("Failed to migrate database", "error", err)
 	}
 
 	jwt := auth.NewJWTManager(cfg.Auth.JWTSecret, 24*time.Hour)
@@ -49,19 +55,26 @@ func main() {
 	tradeH := handler.NewTradeHandler(st)
 	metaH := handler.NewMetaHandler(cfg)
 
-	// 聪明钱处理器（如果启用）
+	// Smart Money handler（若启用）
 	var smartMoneyH *handler.SmartMoneyHandler
-	if cfg.SmartMoney.Enabled && cfg.Dune.Enabled {
-		smartMoneyH = handler.NewSmartMoneyHandler(st, cfg.Dune.APIKey, cfg.SmartMoney.ChainID)
-		log.Printf("[SmartMoney] Enabled for chain %d", cfg.SmartMoney.ChainID)
+	if cfg.SmartMoney.Enabled && cfg.TheGraph.Enabled {
+		smartMoneyH = handler.NewSmartMoneyHandler(
+			st,
+			cfg.TheGraph.UniswapV2Endpoint,
+			cfg.TheGraph.UniswapV3Endpoint,
+			cfg.TheGraph.APIKey,
+			cfg.SmartMoney.ChainID,
+			cfg.SmartMoney.BatchSize,
+		)
+		logger.Info("SmartMoney enabled", "chain_id", cfg.SmartMoney.ChainID)
 	}
 
 	// 启动时校验链与 DEX 配置是否可用（不阻塞启动）
 	if _, err := bootstrap.BuildChains(cfg); err != nil {
-		log.Printf("[warn] chain bootstrap: %v", err)
+		logger.Warn("Chain bootstrap warning", "error", err)
 	}
 	if _, err := bootstrap.BuildDEXRegistry(cfg); err != nil {
-		log.Printf("[warn] dex bootstrap: %v", err)
+		logger.Warn("DEX bootstrap warning", "error", err)
 	}
 
 	gin.SetMode(cfg.Server.Mode)
@@ -111,8 +124,8 @@ func main() {
 	}
 
 	addr := ":" + cfg.Server.Port
-	log.Printf("API server listening on %s", addr)
+	logger.Info("API server starting", "address", addr, "mode", cfg.Server.Mode)
 	if err := r.Run(addr); err != nil {
-		log.Fatal(err)
+		logger.Fatal("Server failed to start", "error", err)
 	}
 }

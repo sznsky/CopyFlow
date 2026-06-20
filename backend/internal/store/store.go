@@ -47,7 +47,7 @@ func (s *Store) AutoMigrate() error {
 		&model.WalletTrade{},
 		&model.TokenSignal{},
 		&model.TokenSignalDetail{},
-		&model.DuneSyncLog{},
+		&model.SyncLog{},
 	)
 }
 

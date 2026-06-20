@@ -2,17 +2,17 @@ package smartmoney
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"copyflow/internal/model"
+	"copyflow/pkg/logger"
 
 	"github.com/shopspring/decimal"
 )
 
 // AggregateTokenSignals 聚合代币信号（分析高分钱包最近N天的买入）。
 func (s *Service) AggregateTokenSignals(days int) error {
-	log.Printf("[SmartMoney] Starting token signal aggregation for last %d days...", days)
+	logger.Info("Starting token signal aggregation", "days", days)
 	
 	// 信号周期
 	endDate := time.Now()
@@ -25,11 +25,11 @@ func (s *Service) AggregateTokenSignals(days int) error {
 	}
 	
 	if len(topWallets) == 0 {
-		log.Println("[SmartMoney] No top wallets found, skipping signal aggregation")
+		logger.Info("No top wallets found, skipping signal aggregation")
 		return nil
 	}
 	
-	log.Printf("[SmartMoney] Analyzing trades from %d top wallets", len(topWallets))
+	logger.Info("Analyzing trades from top wallets", "wallet_count", len(topWallets))
 	
 	// 获取这些钱包的地址列表
 	walletAddrs := make([]string, len(topWallets))
@@ -50,7 +50,7 @@ func (s *Service) AggregateTokenSignals(days int) error {
 		return fmt.Errorf("fetch buy trades: %w", err)
 	}
 	
-	log.Printf("[SmartMoney] Found %d buy trades to analyze", len(buyTrades))
+	logger.Info("Found buy trades to analyze", "count", len(buyTrades))
 	
 	// 按 token 聚合
 	tokenMap := make(map[string]*TokenAggregation)
@@ -131,13 +131,13 @@ func (s *Service) AggregateTokenSignals(days int) error {
 		if err != nil {
 			// 不存在，创建新记录
 			if err := s.store.DB().Create(signal).Error; err != nil {
-				log.Printf("[SmartMoney] Failed to create signal for token %s: %v", tokenAddr, err)
+				logger.Error("Failed to create signal", "token", tokenAddr, "error", err)
 				continue
 			}
 		} else {
 			// 已存在，更新
 			if err := s.store.DB().Model(&existing).Updates(signal).Error; err != nil {
-				log.Printf("[SmartMoney] Failed to update signal for token %s: %v", tokenAddr, err)
+				logger.Error("Failed to update signal", "token", tokenAddr, "error", err)
 				continue
 			}
 			signal.ID = existing.ID
@@ -145,11 +145,11 @@ func (s *Service) AggregateTokenSignals(days int) error {
 		
 		// 保存信号详情
 		if err := s.saveSignalDetails(signal.ID, agg); err != nil {
-			log.Printf("[SmartMoney] Failed to save signal details for token %s: %v", tokenAddr, err)
+			logger.Error("Failed to save signal details", "token", tokenAddr, "error", err)
 		}
 	}
 	
-	log.Printf("[SmartMoney] Token signal aggregation completed: %d tokens", len(tokenMap))
+	logger.Info("Token signal aggregation completed", "token_count", len(tokenMap))
 	return nil
 }
 

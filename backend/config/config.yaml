@@ -10,22 +10,24 @@ auth:
   wallet_encrypt_key: "0123456789abcdef0123456789abcdef"
   nonce_expire_minutes: 10
 
-# Dune Analytics API（聪明钱分析）
-dune:
-  api_key: "sqKRtYDjhXqbk7XvXmI0PgVR7fUCITlp"
-  query_id: 7727110  # Uniswap 交易查询 ID
+# The Graph 子图配置
+thegraph:
   enabled: true
+  api_key: "your-api-key-here"  # 从 https://thegraph.com/studio/ 获取
+  uniswap_v2_endpoint: "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/EYCKATKGBKLWvSfwvBjzfCBmGwYNdVkduYXVivCsLRFu"
+  uniswap_v3_endpoint: "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV"
 
 # 聪明钱配置
 smartmoney:
   enabled: true
   chain_id: 1  # Ethereum
-  min_amount_usd: 10000  # 10000+ USD 才算"聪明钱"大户交易
-  days_back: 1           # 同步天数；PNL 需覆盖持仓周期，卖出匹配不到买入时可增大（如 30）
+  min_amount_usd: 10000  # 最小交易金额（USD）
+  retention_days: 180    # 数据保留天数
   top_wallet_count: 20
   min_wallet_score: 60
   signal_days: 3         # 信号聚合分析最近N天
-  sync_interval_hours: 24  # 每天运行一次
+  sync_interval_hours: 24  # 同步间隔（小时）
+  batch_size: 1000       # The Graph 分页大小
 
 # 邮件（MVP 默认关闭，验证码打印到 API 日志）
 email:

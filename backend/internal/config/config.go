@@ -14,7 +14,7 @@ type Config struct {
 	Auth       AuthConfig
 	Email      EmailConfig
 	Worker     WorkerConfig
-	Dune       DuneConfig
+	TheGraph   TheGraphConfig
 	SmartMoney SmartMoneyConfig
 	Chains     []ChainConfig
 }
@@ -54,23 +54,25 @@ type WorkerConfig struct {
 	Confirmations   uint64
 }
 
-// DuneConfig Dune Analytics API 配置。
-type DuneConfig struct {
-	APIKey  string
-	QueryID int
-	Enabled bool
+// TheGraphConfig The Graph 子图配置。
+type TheGraphConfig struct {
+	Enabled           bool
+	APIKey            string
+	UniswapV2Endpoint string
+	UniswapV3Endpoint string
 }
 
 // SmartMoneyConfig 聪明钱分析配置。
 type SmartMoneyConfig struct {
-	Enabled          bool
-	ChainID          int
-	MinAmountUSD     float64
-	DaysBack         int     // Dune 查询历史天数
-	TopWalletCount   int
-	MinWalletScore   float64
-	SignalDays       int     // 信号聚合分析天数
+	Enabled           bool
+	ChainID           int
+	MinAmountUSD      float64
+	RetentionDays     int // 数据保留天数（默认 180 天）
+	TopWalletCount    int
+	MinWalletScore    float64
+	SignalDays        int // 信号聚合分析天数
 	SyncIntervalHours int
+	BatchSize         int // The Graph 分页大小
 }
 
 // ChainConfig 单条链的 RPC 与 DEX 配置。
@@ -132,20 +134,22 @@ func Load() (*Config, error) {
 			PollIntervalSec: viper.GetInt("worker.poll_interval_sec"),
 			Confirmations:   viper.GetUint64("worker.confirmations"),
 		},
-		Dune: DuneConfig{
-			APIKey:  viper.GetString("dune.api_key"),
-			QueryID: viper.GetInt("dune.query_id"),
-			Enabled: viper.GetBool("dune.enabled"),
+		TheGraph: TheGraphConfig{
+			Enabled:           viper.GetBool("thegraph.enabled"),
+			APIKey:            viper.GetString("thegraph.api_key"),
+			UniswapV2Endpoint: viper.GetString("thegraph.uniswap_v2_endpoint"),
+			UniswapV3Endpoint: viper.GetString("thegraph.uniswap_v3_endpoint"),
 		},
 		SmartMoney: SmartMoneyConfig{
-			Enabled:          viper.GetBool("smartmoney.enabled"),
-			ChainID:          viper.GetInt("smartmoney.chain_id"),
-			MinAmountUSD:     viper.GetFloat64("smartmoney.min_amount_usd"),
-			DaysBack:         viper.GetInt("smartmoney.days_back"),
-			TopWalletCount:   viper.GetInt("smartmoney.top_wallet_count"),
-			MinWalletScore:   viper.GetFloat64("smartmoney.min_wallet_score"),
-			SignalDays:       viper.GetInt("smartmoney.signal_days"),
+			Enabled:           viper.GetBool("smartmoney.enabled"),
+			ChainID:           viper.GetInt("smartmoney.chain_id"),
+			MinAmountUSD:      viper.GetFloat64("smartmoney.min_amount_usd"),
+			RetentionDays:     viper.GetInt("smartmoney.retention_days"),
+			TopWalletCount:    viper.GetInt("smartmoney.top_wallet_count"),
+			MinWalletScore:    viper.GetFloat64("smartmoney.min_wallet_score"),
+			SignalDays:        viper.GetInt("smartmoney.signal_days"),
 			SyncIntervalHours: viper.GetInt("smartmoney.sync_interval_hours"),
+			BatchSize:         viper.GetInt("smartmoney.batch_size"),
 		},
 	}
 
@@ -165,19 +169,21 @@ func setDefaults() {
 	viper.SetDefault("worker.poll_interval_sec", 3)
 	viper.SetDefault("worker.confirmations", 1)
 
-	// Dune Analytics defaults
-	viper.SetDefault("dune.enabled", false)
-	viper.SetDefault("dune.query_id", 0)
+	// The Graph defaults
+	viper.SetDefault("thegraph.enabled", true)
+	viper.SetDefault("thegraph.uniswap_v2_endpoint", "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/EYCKATKGBKLWvSfwvBjzfCBmGwYNdVkduYXVivCsLRFu")
+	viper.SetDefault("thegraph.uniswap_v3_endpoint", "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV")
 
 	// Smart Money defaults
 	viper.SetDefault("smartmoney.enabled", false)
 	viper.SetDefault("smartmoney.chain_id", 1)
-	viper.SetDefault("smartmoney.min_amount_usd", 1000)
-	viper.SetDefault("smartmoney.days_back", 180)
+	viper.SetDefault("smartmoney.min_amount_usd", 10000)
+	viper.SetDefault("smartmoney.retention_days", 180)
 	viper.SetDefault("smartmoney.top_wallet_count", 20)
 	viper.SetDefault("smartmoney.min_wallet_score", 60)
 	viper.SetDefault("smartmoney.signal_days", 3)
 	viper.SetDefault("smartmoney.sync_interval_hours", 24)
+	viper.SetDefault("smartmoney.batch_size", 1000)
 
 	// BSC mainnet defaults (MVP primary chain)
 	viper.SetDefault("chains.bsc.chain_id", 56)

@@ -3,11 +3,11 @@ package smartmoney
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
 	"copyflow/internal/model"
+	"copyflow/pkg/logger"
 
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
@@ -15,7 +15,7 @@ import (
 
 // CalculateWalletScores 计算所有钱包的评分。
 func (s *Service) CalculateWalletScores() error {
-	log.Println("[SmartMoney] Starting wallet score calculation...")
+	logger.Info("Starting wallet score calculation")
 	
 	// 评估周期：过去6个月
 	endDate := time.Now()
@@ -33,11 +33,14 @@ func (s *Service) CalculateWalletScores() error {
 		return fmt.Errorf("fetch wallet addresses: %w", err)
 	}
 	
-	log.Printf("[SmartMoney] Found %d wallets to evaluate", len(walletAddresses))
+	logger.Info("Found wallets to evaluate", "count", len(walletAddresses))
 	
 	for _, walletAddr := range walletAddresses {
 		if err := s.calculateSingleWalletScore(walletAddr, startDate, endDate); err != nil {
-			log.Printf("[SmartMoney] Failed to calculate score for %s: %v", walletAddr, err)
+			logger.Error("Failed to calculate score",
+				"wallet", walletAddr,
+				"error", err,
+			)
 			continue
 		}
 	}
@@ -47,7 +50,7 @@ func (s *Service) CalculateWalletScores() error {
 		return fmt.Errorf("update rankings: %w", err)
 	}
 	
-	log.Println("[SmartMoney] Wallet score calculation completed")
+	logger.Info("Wallet score calculation completed")
 	return nil
 }
 
@@ -353,12 +356,14 @@ func (s *Service) updateWalletRankings() error {
 		}).Error
 		
 		if err != nil {
-			log.Printf("[SmartMoney] Failed to update ranking for wallet %s: %v",
-				wallet.WalletAddress, err)
+			logger.Error("Failed to update ranking",
+				"wallet", wallet.WalletAddress,
+				"error", err,
+			)
 		}
 	}
 	
-	log.Printf("[SmartMoney] Updated rankings for %d wallets", len(wallets))
+	logger.Info("Updated wallet rankings", "count", len(wallets))
 	return nil
 }
 
@@ -385,7 +390,7 @@ func (s *Service) GetTopWallets(limit int, minScore float64) ([]model.SmartWalle
 
 // CalculatePNLForTrades 为交易计算盈亏（匹配买入和卖出）。
 func (s *Service) CalculatePNLForTrades() error {
-	log.Println("[SmartMoney] Starting PNL calculation for trades...")
+	logger.Info("Starting PNL calculation for trades")
 	
 	// 获取所有卖出交易（未计算盈亏的）
 	var sellTrades []model.WalletTrade
@@ -398,7 +403,7 @@ func (s *Service) CalculatePNLForTrades() error {
 		return fmt.Errorf("fetch sell trades: %w", err)
 	}
 	
-	log.Printf("[SmartMoney] Found %d sell trades to calculate PNL", len(sellTrades))
+	logger.Info("Found sell trades to calculate PNL", "count", len(sellTrades))
 	
 	matched := 0
 	skipped := 0
@@ -412,40 +417,45 @@ func (s *Service) CalculatePNLForTrades() error {
 			Order("block_time ASC").
 			First(&buyTrade).Error
 		
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				skipped++
-			}
-			continue
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			skipped++
 		}
-		
-		// 盈亏（USD）
-		pnlUSD := sellTrade.AmountUSD.Sub(buyTrade.AmountUSD)
-		
-		// 盈亏百分比
-		pnlPercent := decimal.Zero
-		if buyTrade.AmountUSD.GreaterThan(decimal.Zero) {
-			pnlPercent = pnlUSD.Div(buyTrade.AmountUSD).Mul(decimal.NewFromInt(100))
-		}
-		
-		// 持仓时长（小时）
-		holdingHours := int(math.Round(sellTrade.BlockTime.Sub(buyTrade.BlockTime).Hours()))
-		
-		// 更新卖出交易的盈亏信息
-		err = s.store.DB().Model(&sellTrade).Updates(map[string]interface{}{
-			"pnl_usd":                pnlUSD,
-			"pnl_percent":            pnlPercent,
-			"holding_duration_hours": holdingHours,
-		}).Error
-		
-		if err != nil {
-			log.Printf("[SmartMoney] Failed to update PNL for trade %s: %v", sellTrade.TxHash, err)
-			continue
-		}
-		matched++
+		continue
 	}
 	
-	log.Printf("[SmartMoney] PNL calculation completed: %d updated, %d skipped (no matching buy in DB; increase days_back for longer history)",
-		matched, skipped)
-	return nil
+	// 盈亏（USD）
+	pnlUSD := sellTrade.AmountUSD.Sub(buyTrade.AmountUSD)
+	
+	// 盈亏百分比
+	pnlPercent := decimal.Zero
+	if buyTrade.AmountUSD.GreaterThan(decimal.Zero) {
+		pnlPercent = pnlUSD.Div(buyTrade.AmountUSD).Mul(decimal.NewFromInt(100))
+	}
+	
+	// 持仓时长（小时）
+	holdingHours := int(math.Round(sellTrade.BlockTime.Sub(buyTrade.BlockTime).Hours()))
+	
+	// 更新卖出交易的盈亏信息
+	err = s.store.DB().Model(&sellTrade).Updates(map[string]interface{}{
+		"pnl_usd":                pnlUSD,
+		"pnl_percent":            pnlPercent,
+		"holding_duration_hours": holdingHours,
+	}).Error
+	
+	if err != nil {
+		logger.Error("Failed to update PNL",
+			"tx_hash", sellTrade.TxHash,
+			"error", err,
+		)
+		continue
+	}
+	matched++
+}
+
+logger.Info("PNL calculation completed",
+	"matched", matched,
+	"skipped", skipped,
+)
+return nil
 }

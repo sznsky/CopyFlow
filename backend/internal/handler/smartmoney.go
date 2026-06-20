@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"copyflow/internal/model"
 	"copyflow/internal/smartmoney"
@@ -19,9 +20,9 @@ type SmartMoneyHandler struct {
 }
 
 // NewSmartMoneyHandler 创建聪明钱处理器实例。
-func NewSmartMoneyHandler(st *store.Store, duneAPIKey string, chainID int) *SmartMoneyHandler {
+func NewSmartMoneyHandler(st *store.Store, v2Endpoint, v3Endpoint, apiKey string, chainID, batchSize int) *SmartMoneyHandler {
 	return &SmartMoneyHandler{
-		service: smartmoney.NewService(st, duneAPIKey, chainID),
+		service: smartmoney.NewService(st, v2Endpoint, v3Endpoint, apiKey, chainID, batchSize),
 	}
 }
 
@@ -154,9 +155,9 @@ func (h *SmartMoneyHandler) GetWalletHistory(c *gin.Context) {
 // POST /api/admin/sync
 func (h *SmartMoneyHandler) TriggerSync(c *gin.Context) {
 	type SyncRequest struct {
-		QueryID      int     `json:"query_id" binding:"required"`
+		StartDate    string  `json:"start_date" binding:"required"` // YYYY-MM-DD
+		EndDate      string  `json:"end_date" binding:"required"`   // YYYY-MM-DD
 		MinAmountUSD float64 `json:"min_amount_usd" binding:"required,min=0"`
-		DaysBack     int     `json:"days_back" binding:"omitempty,min=1"`
 	}
 	
 	var req SyncRequest
@@ -165,20 +166,28 @@ func (h *SmartMoneyHandler) TriggerSync(c *gin.Context) {
 		return
 	}
 	
-	// 默认值：180天（6个月）
-	if req.DaysBack == 0 {
-		req.DaysBack = 180
+	startTime, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_date format"})
+		return
+	}
+	
+	endTime, err := time.Parse("2006-01-02", req.EndDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_date format"})
+		return
 	}
 	
 	// 异步执行同步
 	go func() {
-		if err := h.service.SyncTradesFromDune(req.QueryID, req.MinAmountUSD, req.DaysBack); err != nil {
+		if err := h.service.SyncTradesFromTheGraph(startTime, endTime, req.MinAmountUSD, "manual"); err != nil {
 			// 日志已在 service 中记录
 		}
 	}()
 	
 	c.JSON(http.StatusOK, gin.H{"message": "sync started"})
 }
+
 
 // TriggerScoring 手动触发评分计算（管理员接口）。
 // POST /api/admin/calculate-scores

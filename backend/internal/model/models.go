@@ -195,19 +195,19 @@ type TokenSignalDetail struct {
 	CreatedAt     time.Time       `json:"created_at"`
 }
 
-// DuneSyncLog Dune Analytics 数据同步记录。
-type DuneSyncLog struct {
+// SyncLog 数据同步记录。
+type SyncLog struct {
 	ID              uint64    `gorm:"primaryKey" json:"id"`
-	QueryID         string    `gorm:"size:64;index:idx_query" json:"query_id"`
-	QueryName       *string   `gorm:"size:128" json:"query_name"`
+	Source          string    `gorm:"size:32;index:idx_source" json:"source"` // thegraph
+	SyncType        string    `gorm:"size:32;index:idx_sync_type" json:"sync_type"` // incremental, historical
 	ChainID         int       `json:"chain_id"`
-	SyncType        string    `gorm:"size:32;index:idx_sync_type" json:"sync_type"`
 	StartTime       time.Time `json:"start_time"`
 	EndTime         time.Time `json:"end_time"`
-	RecordsFetched  int       `gorm:"default:0" json:"records_fetched"`
 	RecordsInserted int       `gorm:"default:0" json:"records_inserted"`
 	RecordsUpdated  int       `gorm:"default:0" json:"records_updated"`
-	Status          string    `gorm:"size:16;index:idx_status" json:"status"`
+	RecordsSkipped  int       `gorm:"default:0" json:"records_skipped"`
+	Status          string    `gorm:"size:16;index:idx_status" json:"status"` // success, failed
 	ErrorMessage    *string   `gorm:"type:text" json:"error_message"`
+	CompletedAt     time.Time `json:"completed_at"`
 	CreatedAt       time.Time `json:"created_at"`
 }
