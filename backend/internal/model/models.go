@@ -136,10 +136,10 @@ type SmartWallet struct {
 	UpdatedAt     time.Time       `json:"updated_at"`
 }
 
-// WalletTrade 钱包交易历史（从 Dune Analytics 同步）。
+// WalletTrade 钱包交易历史（数据来源：The Graph）。
 type WalletTrade struct {
 	ID              uint64          `gorm:"primaryKey" json:"id"`
-	WalletAddress   string          `gorm:"size:42;index:idx_wallet" json:"wallet_address"`
+	WalletAddress   string          `gorm:"size:42;index:idx_wallet;uniqueIndex:uk_tx" json:"wallet_address"`
 	ChainID         int             `gorm:"index:idx_chain" json:"chain_id"`
 	TxHash          string          `gorm:"size:66;uniqueIndex:uk_tx" json:"tx_hash"`
 	BlockNumber     uint64          `json:"block_number"`

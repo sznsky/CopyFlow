@@ -5,7 +5,7 @@
 ## 核心功能
 
 ### 🔍 聪明钱分析（Smart Money Analytics）
-- **数据源**: Dune Analytics 集成，获取 Uniswap 等 DEX 的链上交易数据
+- **数据源**: The Graph 子图集成，获取 Uniswap V2/V3 等 DEX 的链上交易数据
 - **钱包评分**: 基于 6 个月历史交易，多维度评分（盈亏、胜率、盈亏比、回撤等）
 - **Top 20 筛选**: 自动筛选高分钱包，实时排名
 - **信号聚合**: 分析高分钱包的共识买入行为，生成投资信号
@@ -22,7 +22,7 @@
 - MySQL 8.0+
 - Go 1.22+
 - Node.js 18+
-- Dune Analytics API Key（聪明钱功能）
+- The Graph API Key（聪明钱功能，从 https://thegraph.com/studio/ 获取）
 
 ### 1. 数据库初始化
 
@@ -41,11 +41,12 @@ mysql -u root -p copyflow < backend/migrations/003_smart_money.sql
 database:
   dsn: "root:你的密码@tcp(127.0.0.1:3306)/copyflow?charset=utf8mb4&parseTime=True&loc=Local"
 
-# Dune Analytics API（聪明钱分析）
-dune:
-  api_key: "your-dune-api-key-here"
-  query_id: 1234567
+# The Graph 子图配置（聪明钱分析）
+thegraph:
   enabled: true
+  api_key: "your-api-key-here"  # 从 https://thegraph.com/studio/ 获取
+  uniswap_v2_endpoint: "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/EYCKATKGBKLWvSfwvBjzfCBmGwYNdVkduYXVivCsLRFu"
+  uniswap_v3_endpoint: "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV"
 
 # 聪明钱配置
 smartmoney:
@@ -91,7 +92,7 @@ CopyFlow/
 │   │   ├── model/               # 数据模型
 │   │   └── ...
 │   ├── pkg/
-│   │   ├── dune/                # Dune Analytics 客户端
+│   │   ├── thegraph/             # The Graph GraphQL 客户端
 │   │   └── ...
 │   ├── migrations/              # 数据库迁移
 │   └── config/                  # 配置文件
@@ -132,4 +133,4 @@ CopyFlow/
 | [SMARTMONEY.md](SMARTMONEY.md) | **聪明钱功能详细说明** |
 | [backend/README.md](backend/README.md) | 后端架构、配置、API 接口 |
 | [frontend/README.md](frontend/README.md) | 前端页面、目录结构 |
-| [backend/docs/dune_query_example.sql](backend/docs/dune_query_example.sql) | Dune 查询 SQL 示例 |
+| [backend/docs/THEGRAPH_INTEGRATION.md](backend/docs/THEGRAPH_INTEGRATION.md) | The Graph 集成说明 |

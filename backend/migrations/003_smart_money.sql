@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS smart_wallets (
     INDEX idx_is_top (is_top_wallet)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 钱包交易历史表（从 Dune Analytics 同步）
+-- 钱包交易历史表（数据来源：The Graph）
 CREATE TABLE IF NOT EXISTS wallet_trades (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     wallet_address VARCHAR(42) NOT NULL,
@@ -47,7 +47,8 @@ CREATE TABLE IF NOT EXISTS wallet_trades (
     block_time DATETIME NOT NULL,
     
     -- 交易信息
-    dex_name VARCHAR(32) NOT NULL,                         -- uniswap_v2, uniswap_v3
+    dex_name VARCHAR(32) NOT NULL,                         -- uniswap
+    dex_version VARCHAR(8) NOT NULL DEFAULT '',            -- v2, v3
     pool_address VARCHAR(42) NOT NULL,
     token_in VARCHAR(42) NOT NULL,
     token_out VARCHAR(42) NOT NULL,
@@ -128,26 +129,27 @@ CREATE TABLE IF NOT EXISTS token_signal_details (
     INDEX idx_wallet (wallet_address)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Dune Analytics 数据同步记录表
-CREATE TABLE IF NOT EXISTS dune_sync_log (
+-- 数据同步记录表（数据来源：The Graph）
+CREATE TABLE IF NOT EXISTS sync_log (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    query_id VARCHAR(64) NOT NULL,
-    query_name VARCHAR(128),
+    source VARCHAR(32) NOT NULL,                           -- thegraph
+    sync_type VARCHAR(32) NOT NULL,                        -- incremental, historical, manual
     chain_id INT NOT NULL,
     
-    sync_type VARCHAR(32) NOT NULL,                        -- trades, wallet_history
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
-    records_fetched INT NOT NULL DEFAULT 0,
+    
     records_inserted INT NOT NULL DEFAULT 0,
     records_updated INT NOT NULL DEFAULT 0,
+    records_skipped INT NOT NULL DEFAULT 0,
     
-    status VARCHAR(16) NOT NULL,                           -- success, failed, partial
+    status VARCHAR(16) NOT NULL,                           -- success, failed
     error_message TEXT,
     
+    completed_at DATETIME NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
-    INDEX idx_query (query_id, created_at DESC),
+    INDEX idx_source (source, created_at DESC),
     INDEX idx_sync_type (sync_type, created_at DESC),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -5,7 +5,7 @@
 ## 前置要求
 
 1. MySQL 数据库已启动
-2. 已执行所有迁移脚本（包括 005_cleanup_dune_and_prepare_thegraph.sql）
+2. 已执行所有迁移脚本（001~003，聪明钱相关表结构在 003_smart_money.sql 中一次性创建）
 3. 获取 The Graph API Key：https://thegraph.com/studio/
 
 ## 配置

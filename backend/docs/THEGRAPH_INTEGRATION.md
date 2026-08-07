@@ -17,7 +17,7 @@
 - ✅ `pkg/thegraph/stablecoins.go` - 稳定币识别与交易方向判断
 - ✅ `pkg/thegraph/uniswap.go` - Uniswap V2/V3 查询与解析
 - ✅ `internal/smartmoney/sync.go` - 重构的同步逻辑
-- ✅ `migrations/005_cleanup_dune_and_prepare_thegraph.sql` - 数据清理迁移
+- ✅ `migrations/003_smart_money.sql` - 已合并为直接创建 The Graph 版最终表结构（`sync_log` 表、`wallet_trades.dex_version` 列等），不再包含 Dune 相关表
 
 ### 3. 配置变更
 
@@ -134,11 +134,12 @@ go run ./cmd/api
 
 ## 数据库迁移
 
-已执行 `005_cleanup_dune_and_prepare_thegraph.sql`：
-- ✅ 删除所有旧 Dune 数据
-- ✅ 清空 smart_wallets、token_signals 表
-- ✅ 创建新的 sync_log 表
-- ✅ 删除 dune_sync_log 表
+`migrations/003_smart_money.sql` 已直接创建 The Graph 版最终表结构：
+- ✅ `wallet_trades` 表包含 `dex_version` 列
+- ✅ `sync_log` 表（记录 The Graph 同步日志）
+- ✅ 不再包含任何 Dune 相关表（原 `dune_sync_log` 已移除）
+
+新环境只需依次执行 `001_init.sql`、`002_auth_email.sql`、`003_smart_money.sql` 即可。
 
 ## 后续建议
 
