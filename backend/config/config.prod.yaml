@@ -1,0 +1,7 @@
+# 生产环境配置（会覆盖 config.yaml 中的同名配置）
+# 运行方式：APP_ENV=prod go run ./cmd/api
+server:
+  mode: release
+
+database:
+  dsn: "root:CHANGE_ME@tcp(127.0.0.1:3306)/copyflow?charset=utf8mb4&parseTime=True&loc=Local"

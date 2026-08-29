@@ -2,14 +2,25 @@
 package config
 
 import (
+	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/spf13/viper"
 )
 
+// 运行环境常量。
+const (
+	EnvDev  = "dev"
+	EnvTest = "test"
+	EnvProd = "prod"
+)
+
 // Config 应用总配置，链和 DEX 可通过配置扩展。
 type Config struct {
-	Server     ServerConfig
+	Environment string // dev | test | prod
+	Server      ServerConfig
 	Database   DatabaseConfig
 	Auth       AuthConfig
 	Email      EmailConfig
@@ -96,7 +107,8 @@ type DEXConfig struct {
 
 // Load 从 YAML 和环境变量加载配置。
 func Load() (*Config, error) {
-	viper.SetConfigName("config")
+	env := resolveEnv()
+
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config")
@@ -106,9 +118,27 @@ func Load() (*Config, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	setDefaults()
-	_ = viper.ReadInConfig()
+
+	// 1. 读取基础配置 config.yaml（公共配置）
+	viper.SetConfigName("config")
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, fmt.Errorf("read base config: %w", err)
+		}
+		log.Printf("[config] config.yaml not found, using defaults")
+	}
+
+	// 2. 读取环境配置 config.<env>.yaml，覆盖基础配置
+	viper.SetConfigName("config." + env)
+	if err := viper.MergeInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, fmt.Errorf("merge env config: %w", err)
+		}
+		log.Printf("[config] %s not found, using base config only", "config."+env+".yaml")
+	}
 
 	cfg := &Config{
+		Environment: env,
 		Server: ServerConfig{
 			Port: viper.GetString("server.port"),
 			Mode: viper.GetString("server.mode"),
@@ -260,3 +290,28 @@ func (c *Config) GetChain(chainID int) *ChainConfig {
 	}
 	return nil
 }
+
+// resolveEnv 解析运行环境：优先 APP_ENV，其次 GO_ENV，默认 dev。
+// 支持 dev / test / prod。
+func resolveEnv() string {
+	env := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
+	if env == "" {
+		env = strings.ToLower(strings.TrimSpace(os.Getenv("GO_ENV")))
+	}
+	if env == "" {
+		return EnvDev
+	}
+	switch env {
+	case EnvDev, EnvTest, EnvProd:
+		return env
+	default:
+		log.Printf("[config] unknown APP_ENV=%q, falling back to %q", env, EnvDev)
+		return EnvDev
+	}
+}
+
+// IsProd 是否生产环境。
+func (c *Config) IsProd() bool { return c.Environment == EnvProd }
+
+// IsDev 是否开发环境。
+func (c *Config) IsDev() bool { return c.Environment == EnvDev }
