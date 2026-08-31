@@ -47,13 +47,24 @@ func main() {
 		cfg.TheGraph.APIKey,
 		cfg.SmartMoney.ChainID,
 		cfg.SmartMoney.BatchSize,
+		cfg.SmartMoney.Pairs,
+		cfg.SmartMoney.EvalDays,
+		cfg.SmartMoney.SeedWallets,
+		cfg.SmartMoney.MinWalletScore,
 	)
 
+	mode := "pair_filter"
+	if service.IsSeedMode() {
+		mode = "seed_wallets"
+	}
 	logger.Info("SmartMoney Worker started",
 		"chain_id", cfg.SmartMoney.ChainID,
 		"sync_interval_hours", cfg.SmartMoney.SyncIntervalHours,
 		"min_amount_usd", cfg.SmartMoney.MinAmountUSD,
 		"retention_days", cfg.SmartMoney.RetentionDays,
+		"eval_days", cfg.SmartMoney.EvalDays,
+		"mode", mode,
+		"seed_wallets_count", len(cfg.SmartMoney.SeedWallets),
 	)
 
 	// 首次执行：同时启动历史数据拉取和增量同步
@@ -69,12 +80,29 @@ func main() {
 	}
 }
 
-// runHistoricalSync 拉取半年历史数据（后台任务，只运行一次）。
-func runHistoricalSync(service *smartmoney.Service, cfg *config.Config) {
-	logger.Info("========== Starting historical sync (6 months) ==========")
+// syncOnce 根据模式调用对应的同步方法。
+func syncOnce(service *smartmoney.Service, startTime, endTime time.Time, minAmountUSD float64, syncType string) {
+	var err error
+	if service.IsSeedMode() {
+		err = service.SyncSeedWallets(startTime, endTime, minAmountUSD, syncType)
+	} else {
+		err = service.SyncTradesFromTheGraph(startTime, endTime, minAmountUSD, syncType)
+	}
+	if err != nil {
+		logger.Error("Sync failed", "type", syncType, "error", err)
+	}
+}
 
-	endTime := time.Now().AddDate(0, 0, -1) // 昨天结束
-	startTime := endTime.AddDate(0, 0, -180) // 往前 180 天
+// runHistoricalSync 拉取历史数据（后台任务，只运行一次），窗口由 eval_days 决定。
+func runHistoricalSync(service *smartmoney.Service, cfg *config.Config) {
+	evalDays := cfg.SmartMoney.EvalDays
+	if evalDays <= 0 {
+		evalDays = 30
+	}
+	logger.Info("========== Starting historical sync ==========", "days", evalDays)
+
+	endTime := time.Now()                          // 当前时间
+	startTime := endTime.AddDate(0, 0, -evalDays)  // 往前 eval_days 天
 
 	// 分批拉取，每次 30 天
 	batchDays := 30
@@ -91,9 +119,7 @@ func runHistoricalSync(service *smartmoney.Service, cfg *config.Config) {
 			"end_date", currentEnd.Format("2006-01-02"),
 		)
 
-		if err := service.SyncTradesFromTheGraph(currentStart, currentEnd, cfg.SmartMoney.MinAmountUSD, "historical"); err != nil {
-			logger.Error("Historical sync failed", "error", err)
-		}
+		syncOnce(service, currentStart, currentEnd, cfg.SmartMoney.MinAmountUSD, "historical")
 
 		currentStart = currentEnd
 		time.Sleep(5 * time.Second) // 避免请求过快
@@ -106,25 +132,26 @@ func runHistoricalSync(service *smartmoney.Service, cfg *config.Config) {
 	runAnalysis(service, cfg)
 }
 
-// runIncrementalCycle 执行增量同步（拉取昨天的数据）。
+// runIncrementalCycle 执行增量同步（拉取最近 1 小时的数据）。
 func runIncrementalCycle(service *smartmoney.Service, cfg *config.Config) {
 	logger.Info("========== Starting incremental cycle ==========")
 
-	// 昨天 00:00:00 到 23:59:59
+	// 最近 1 小时：从 (now - 1h) 到 now
 	now := time.Now()
-	yesterday := now.AddDate(0, 0, -1)
-	startTime := time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), 0, 0, 0, 0, time.UTC)
-	endTime := time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), 23, 59, 59, 0, time.UTC)
-
-	// 1. 同步昨天的交易数据
-	logger.Info("Step 1: Syncing yesterday's trades",
-		"date", yesterday.Format("2006-01-02"),
-	)
-	if err := service.SyncTradesFromTheGraph(startTime, endTime, cfg.SmartMoney.MinAmountUSD, "incremental"); err != nil {
-		logger.Error("Failed to sync trades", "error", err)
-	} else {
-		logger.Info("Step 1: ✓ Trades synced")
+	intervalHours := cfg.SmartMoney.SyncIntervalHours
+	if intervalHours <= 0 {
+		intervalHours = 1
 	}
+	endTime := now
+	startTime := now.Add(-time.Duration(intervalHours) * time.Hour)
+
+	// 1. 同步最近一个周期的交易数据
+	logger.Info("Step 1: Syncing recent trades",
+		"from", startTime.Format("2006-01-02 15:04:05"),
+		"to", endTime.Format("2006-01-02 15:04:05"),
+	)
+	syncOnce(service, startTime, endTime, cfg.SmartMoney.MinAmountUSD, "incremental")
+	logger.Info("Step 1: ✓ Trades synced")
 
 	time.Sleep(2 * time.Second)
 

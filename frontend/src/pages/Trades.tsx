@@ -34,7 +34,7 @@ export function Trades() {
   if (loading) return <p className="text-muted">加载中...</p>
 
   return (
-    <div className="page">
+    <div className="page-wrap">
       <div className="section-header">
         <h2>交易记录</h2>
         <button className="btn btn-ghost" onClick={load}>刷新</button>
@@ -49,70 +49,76 @@ export function Trades() {
       </div>
 
       {tab === 'copy' ? (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>状态</th>
-              <th>链</th>
-              <th>代币</th>
-              <th>金额 (wei)</th>
-              <th>Tx Hash</th>
-              <th>错误</th>
-              <th>时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            {copyTrades.length === 0 ? (
-              <tr><td colSpan={7} className="text-muted">暂无跟单记录</td></tr>
-            ) : (
-              copyTrades.map((t) => {
-                const chainId = t.leader_trade?.chain_id ?? 56
-                return (
-                  <tr key={t.id}>
-                    <td><StatusBadge status={t.status} /></td>
-                    <td>{chainName(chainId)}</td>
-                    <td className="mono">{shortAddr(t.token_out)}</td>
-                    <td>{t.amount_in}</td>
-                    <td>
-                      <TxLink chainId={chainId} hash={t.tx_hash} />
-                    </td>
-                    <td className="error-text">{t.error_msg || '-'}</td>
-                    <td>{new Date(t.created_at).toLocaleString()}</td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>状态</th>
+                <th>链</th>
+                <th>代币</th>
+                <th>金额</th>
+                <th>Tx Hash</th>
+                <th>错误</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              {copyTrades.length === 0 ? (
+                <tr><td colSpan={7} className="text-muted" style={{ textAlign: 'center', padding: '32px 14px' }}>暂无跟单记录</td></tr>
+              ) : (
+                copyTrades.map((t) => {
+                  const chainId = t.leader_trade?.chain_id ?? 56
+                  return (
+                    <tr key={t.id}>
+                      <td><StatusBadge status={t.status} /></td>
+                      <td>{chainName(chainId)}</td>
+                      <td className="mono">{shortAddr(t.token_out)}</td>
+                      <td className="mono">{t.amount_in}</td>
+                      <td><TxLink chainId={chainId} hash={t.tx_hash} /></td>
+                      <td className="error-text">{t.error_msg || '—'}</td>
+                      <td style={{ color: 'var(--muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {new Date(t.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>链</th>
-              <th>领头地址</th>
-              <th>DEX</th>
-              <th>买入代币</th>
-              <th>Tx Hash</th>
-              <th>时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leaderTrades.length === 0 ? (
-              <tr><td colSpan={6} className="text-muted">暂无领头交易</td></tr>
-            ) : (
-              leaderTrades.map((t) => (
-                <tr key={t.id}>
-                  <td>{chainName(t.chain_id)}</td>
-                  <td className="mono">{shortAddr(t.leader_address)}</td>
-                  <td>{t.dex_type}</td>
-                  <td className="mono">{shortAddr(t.token_out)}</td>
-                  <td><TxLink chainId={t.chain_id} hash={t.tx_hash} /></td>
-                  <td>{new Date(t.detected_at).toLocaleString()}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>链</th>
+                <th>领头地址</th>
+                <th>DEX</th>
+                <th>买入代币</th>
+                <th>Tx Hash</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaderTrades.length === 0 ? (
+                <tr><td colSpan={6} className="text-muted" style={{ textAlign: 'center', padding: '32px 14px' }}>暂无领头交易</td></tr>
+              ) : (
+                leaderTrades.map((t) => (
+                  <tr key={t.id}>
+                    <td>{chainName(t.chain_id)}</td>
+                    <td className="mono">{shortAddr(t.leader_address)}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.dex_type}</td>
+                    <td className="mono">{shortAddr(t.token_out)}</td>
+                    <td><TxLink chainId={t.chain_id} hash={t.tx_hash} /></td>
+                    <td style={{ color: 'var(--muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                      {new Date(t.detected_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )

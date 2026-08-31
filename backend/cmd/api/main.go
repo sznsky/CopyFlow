@@ -65,6 +65,10 @@ func main() {
 			cfg.TheGraph.APIKey,
 			cfg.SmartMoney.ChainID,
 			cfg.SmartMoney.BatchSize,
+			cfg.SmartMoney.Pairs,
+			cfg.SmartMoney.EvalDays,
+			cfg.SmartMoney.SeedWallets,
+			cfg.SmartMoney.MinWalletScore,
 		)
 		logger.Info("SmartMoney enabled", "chain_id", cfg.SmartMoney.ChainID)
 	}
@@ -92,6 +96,16 @@ func main() {
 		api.POST("/auth/email/register", authEmailH.EmailRegister)
 		api.POST("/auth/email/login", authEmailH.EmailLogin)
 
+		// 首页公开统计（无需登录）
+		if smartMoneyH != nil {
+			api.GET("/dashboard/stats", smartMoneyH.GetDashboardStats)
+			// 聪明钱只读接口：公开，无需登录
+			api.GET("/smart-wallets", smartMoneyH.GetTopWallets)
+			api.GET("/token-signals", smartMoneyH.GetTopSignals)
+			api.GET("/token-signals/:id/details", smartMoneyH.GetSignalDetails)
+			api.GET("/wallet-history/:address", smartMoneyH.GetWalletHistory)
+		}
+
 		authed := api.Group("")
 		authed.Use(middleware.Auth(jwt))
 		{
@@ -105,14 +119,8 @@ func main() {
 			authed.GET("/copy-trades", tradeH.ListCopyTrades)
 			authed.GET("/leader-trades", tradeH.ListLeaderTrades)
 
-			// 聪明钱 API
+			// 聪明钱管理员接口（需登录）
 			if smartMoneyH != nil {
-				authed.GET("/smart-wallets", smartMoneyH.GetTopWallets)
-				authed.GET("/token-signals", smartMoneyH.GetTopSignals)
-				authed.GET("/token-signals/:id/details", smartMoneyH.GetSignalDetails)
-				authed.GET("/wallet-history/:address", smartMoneyH.GetWalletHistory)
-
-				// 管理员接口
 				admin := authed.Group("/admin")
 				{
 					admin.POST("/sync", smartMoneyH.TriggerSync)

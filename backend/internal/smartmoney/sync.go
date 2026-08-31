@@ -17,22 +17,35 @@ import (
 
 // Service 聪明钱服务。
 type Service struct {
-	store      *store.Store
-	v2Client   *thegraph.Client
-	v3Client   *thegraph.Client
-	chainID    int
-	batchSize  int
+	store          *store.Store
+	v2Client       *thegraph.Client
+	v3Client       *thegraph.Client
+	chainID        int
+	batchSize      int
+	pairs          []string // 监听的交易对地址列表（空表示不过滤）
+	evalDays       int      // 评分评估窗口天数
+	seedWallets    []string // 手动维护的种子钱包地址（非空时优先使用）
+	minWalletScore float64  // 进入 Top 榜单的最低分
 }
 
 // NewService 创建聪明钱服务实例。
-func NewService(st *store.Store, v2Endpoint, v3Endpoint, apiKey string, chainID, batchSize int) *Service {
+func NewService(st *store.Store, v2Endpoint, v3Endpoint, apiKey string, chainID, batchSize int, pairs []string, evalDays int, seedWallets []string, minWalletScore float64) *Service {
 	return &Service{
-		store:     st,
-		v2Client:  thegraph.NewClient(v2Endpoint, apiKey),
-		v3Client:  thegraph.NewClient(v3Endpoint, apiKey),
-		chainID:   chainID,
-		batchSize: batchSize,
+		store:          st,
+		v2Client:       thegraph.NewClient(v2Endpoint, apiKey),
+		v3Client:       thegraph.NewClient(v3Endpoint, apiKey),
+		chainID:        chainID,
+		batchSize:      batchSize,
+		pairs:          pairs,
+		evalDays:       evalDays,
+		seedWallets:    seedWallets,
+		minWalletScore: minWalletScore,
 	}
+}
+
+// IsSeedMode 是否启用种子钱包模式。
+func (s *Service) IsSeedMode() bool {
+	return len(s.seedWallets) > 0
 }
 
 // Store 返回 store 实例。
@@ -54,6 +67,10 @@ func (s *Service) SyncTradesFromTheGraph(startTime, endTime time.Time, minAmount
 	totalInserted := 0
 	totalUpdated := 0
 	totalSkipped := 0
+
+	if len(s.pairs) > 0 {
+		logger.Info("Pair filter active", "pairs_count", len(s.pairs))
+	}
 
 	// 同步 Uniswap V2
 	logger.Info("Syncing Uniswap V2...")
@@ -116,7 +133,7 @@ func (s *Service) SyncTradesFromTheGraph(startTime, endTime time.Time, minAmount
 
 // syncV2Swaps 同步 Uniswap V2 交易。
 func (s *Service) syncV2Swaps(ctx context.Context, startTime, endTime time.Time, minAmountUSD float64) (int, int, int, error) {
-	results, err := s.v2Client.FetchUniswapV2Swaps(ctx, startTime, endTime, minAmountUSD, s.batchSize)
+	results, err := s.v2Client.FetchUniswapV2Swaps(ctx, startTime, endTime, minAmountUSD, s.batchSize, s.pairs, s.seedWallets)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("fetch V2 swaps: %w", err)
 	}
@@ -190,7 +207,7 @@ func (s *Service) syncV2Swaps(ctx context.Context, startTime, endTime time.Time,
 
 // syncV3Swaps 同步 Uniswap V3 交易。
 func (s *Service) syncV3Swaps(ctx context.Context, startTime, endTime time.Time, minAmountUSD float64) (int, int, int, error) {
-	results, err := s.v3Client.FetchUniswapV3Swaps(ctx, startTime, endTime, minAmountUSD, s.batchSize)
+	results, err := s.v3Client.FetchUniswapV3Swaps(ctx, startTime, endTime, minAmountUSD, s.batchSize, s.pairs, s.seedWallets)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("fetch V3 swaps: %w", err)
 	}
@@ -343,6 +360,22 @@ func (s *Service) upsertTrade(trade *model.WalletTrade) error {
 	return s.store.DB().Model(&existing).
 		Omit("PnlUSD", "PnlPercent", "HoldingDurationHours").
 		Updates(trade).Error
+}
+
+// SyncSeedWallets 种子钱包模式：拉取 seed_wallets 中所有地址的历史交易。
+// 直接复用 SyncTradesFromTheGraph，由 syncV2/V3Swaps 内部自动选择钱包过滤查询。
+func (s *Service) SyncSeedWallets(startTime, endTime time.Time, minAmountUSD float64, syncType string) error {
+	if !s.IsSeedMode() {
+		logger.Info("SyncSeedWallets skipped: no seed wallets configured")
+		return nil
+	}
+	logger.Info("Starting seed wallet sync",
+		"wallet_count", len(s.seedWallets),
+		"sync_type", syncType,
+		"start_date", startTime.Format("2006-01-02"),
+		"end_date", endTime.Format("2006-01-02"),
+	)
+	return s.SyncTradesFromTheGraph(startTime, endTime, minAmountUSD, syncType)
 }
 
 // CleanupOldTrades 清理超过保留期的交易数据。

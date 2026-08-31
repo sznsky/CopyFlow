@@ -132,3 +132,33 @@ export async function fetchCopyTrades() {
 export async function fetchLeaderTrades() {
   return request<import('../types').LeaderTrade[]>('/api/leader-trades')
 }
+
+// --- 聪明钱 API ---
+
+/** axios 风格错误对象，携带响应体，供页面读取 err.response.data.error */
+type HttpError = Error & { response?: { data?: { error?: string } } }
+
+/** 轻量 GET 封装，返回 { data }，自动附带 JWT */
+async function httpGet<T>(path: string): Promise<{ data: T }> {
+  const headers: Record<string, string> = {}
+  const token = getToken()
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  const res = await fetch(path, { headers })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const err = new Error(
+      (data as { error?: string }).error || `请求失败: ${res.status}`,
+    ) as HttpError
+    err.response = { data }
+    throw err
+  }
+  return { data: data as T }
+}
+
+/** axios 风格客户端，供 SmartWallets / TokenSignals / WalletDetail 使用 */
+export const apiClient = {
+  get: <T = unknown>(path: string) => httpGet<T>(path),
+}

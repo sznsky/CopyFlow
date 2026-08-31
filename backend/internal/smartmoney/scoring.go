@@ -16,10 +16,14 @@ import (
 // CalculateWalletScores 计算所有钱包的评分。
 func (s *Service) CalculateWalletScores() error {
 	logger.Info("Starting wallet score calculation")
-	
-	// 评估周期：过去6个月
+
+	// 评估周期：使用可配置的 evalDays（默认 30 天）
 	endDate := time.Now()
-	startDate := endDate.AddDate(0, -6, 0)
+	evalDays := s.evalDays
+	if evalDays <= 0 {
+		evalDays = 30
+	}
+	startDate := endDate.AddDate(0, 0, -evalDays)
 	
 	// 获取在评估周期内有交易的所有钱包
 	var walletAddresses []string
@@ -201,16 +205,24 @@ func (s *Service) calculateSingleWalletScore(walletAddr string, startDate, endDa
 		EvaluationStartDate: startDate,
 		EvaluationEndDate:   endDate,
 	}
-	
-	// Upsert
-	err = s.store.DB().Where("wallet_address = ? AND chain_id = ?", walletAddr, s.chainID).
-		Assign(wallet).
-		FirstOrCreate(&model.SmartWallet{}).Error
-	
-	if err != nil {
-		return fmt.Errorf("save wallet score: %w", err)
+
+	// 先查再决定 Create 还是 Save，避免 FirstOrCreate+Assign 在更新时丢字段的 bug
+	var existing model.SmartWallet
+	result := s.store.DB().Where("wallet_address = ? AND chain_id = ?", walletAddr, s.chainID).First(&existing)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		if err := s.store.DB().Create(wallet).Error; err != nil {
+			return fmt.Errorf("create wallet score: %w", err)
+		}
+	} else if result.Error != nil {
+		return fmt.Errorf("query wallet: %w", result.Error)
+	} else {
+		wallet.ID = existing.ID
+		wallet.CreatedAt = existing.CreatedAt // 保留原始创建时间，避免零值写入 MySQL
+		if err := s.store.DB().Save(wallet).Error; err != nil {
+			return fmt.Errorf("update wallet score: %w", err)
+		}
 	}
-	
+
 	return nil
 }
 
@@ -386,6 +398,58 @@ func (s *Service) GetTopWallets(limit int, minScore float64) ([]model.SmartWalle
 	}
 	
 	return wallets, nil
+}
+
+// DashboardStats 首页统计指标。
+type DashboardStats struct {
+	MonitoredWallets int64   `json:"monitored_wallets"` // 监控钱包总数（评分 >= minScore）
+	TodaySignals     int64   `json:"today_signals"`     // 最新信号周期信号数
+	TopScore         float64 `json:"top_score"`         // 最高评分
+	AvgWinRate       float64 `json:"avg_win_rate"`      // 平均胜率（%）
+}
+
+// GetDashboardStats 聚合首页统计指标。
+func (s *Service) GetDashboardStats(minScore float64) (*DashboardStats, error) {
+	stats := &DashboardStats{}
+
+	// 1. 监控钱包总数
+	if err := s.store.DB().Model(&model.SmartWallet{}).
+		Where("chain_id = ? AND score >= ?", s.chainID, minScore).
+		Count(&stats.MonitoredWallets).Error; err != nil {
+		return nil, fmt.Errorf("count monitored wallets: %w", err)
+	}
+
+	// 2. 最高评分 + 平均胜率
+	var agg struct {
+		TopScore   decimal.Decimal
+		AvgWinRate decimal.Decimal
+	}
+	if err := s.store.DB().Model(&model.SmartWallet{}).
+		Where("chain_id = ? AND score >= ?", s.chainID, minScore).
+		Select("COALESCE(MAX(score), 0) AS top_score, COALESCE(AVG(win_rate), 0) AS avg_win_rate").
+		Scan(&agg).Error; err != nil {
+		return nil, fmt.Errorf("aggregate wallet stats: %w", err)
+	}
+	stats.TopScore, _ = agg.TopScore.Float64()
+	stats.AvgWinRate, _ = agg.AvgWinRate.Float64()
+
+	// 3. 最新信号周期的信号总数
+	var latestStartDate time.Time
+	if err := s.store.DB().Model(&model.TokenSignal{}).
+		Where("chain_id = ?", s.chainID).
+		Select("MAX(signal_start_date)").
+		Scan(&latestStartDate).Error; err != nil {
+		return nil, fmt.Errorf("fetch latest signal period: %w", err)
+	}
+	if !latestStartDate.IsZero() {
+		if err := s.store.DB().Model(&model.TokenSignal{}).
+			Where("chain_id = ? AND signal_start_date = ?", s.chainID, latestStartDate).
+			Count(&stats.TodaySignals).Error; err != nil {
+			return nil, fmt.Errorf("count today signals: %w", err)
+		}
+	}
+
+	return stats, nil
 }
 
 // CalculatePNLForTrades 为交易计算盈亏（匹配买入和卖出）。

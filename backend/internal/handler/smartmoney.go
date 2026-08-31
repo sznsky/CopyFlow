@@ -20,9 +20,9 @@ type SmartMoneyHandler struct {
 }
 
 // NewSmartMoneyHandler 创建聪明钱处理器实例。
-func NewSmartMoneyHandler(st *store.Store, v2Endpoint, v3Endpoint, apiKey string, chainID, batchSize int) *SmartMoneyHandler {
+func NewSmartMoneyHandler(st *store.Store, v2Endpoint, v3Endpoint, apiKey string, chainID, batchSize int, pairs []string, evalDays int, seedWallets []string, minWalletScore float64) *SmartMoneyHandler {
 	return &SmartMoneyHandler{
-		service: smartmoney.NewService(st, v2Endpoint, v3Endpoint, apiKey, chainID, batchSize),
+		service: smartmoney.NewService(st, v2Endpoint, v3Endpoint, apiKey, chainID, batchSize, pairs, evalDays, seedWallets, minWalletScore),
 	}
 }
 
@@ -59,6 +59,17 @@ func (h *SmartMoneyHandler) GetTopWallets(c *gin.Context) {
 		"wallets": wallets,
 		"count":   len(wallets),
 	})
+}
+
+// GetDashboardStats 获取首页统计指标。
+// GET /api/dashboard/stats
+func (h *SmartMoneyHandler) GetDashboardStats(c *gin.Context) {
+	stats, err := h.service.GetDashboardStats(60)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stats)
 }
 
 // GetTopSignalsRequest 获取代币信号请求。

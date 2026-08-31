@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// UniswapV2SwapsQuery Uniswap V2 Swaps GraphQL 查询。
+// UniswapV2SwapsQuery Uniswap V2 Swaps GraphQL 查询（全量，无 pair 过滤）。
 const UniswapV2SwapsQuery = `
 query GetSwaps($first: Int!, $skip: Int!, $timestampGte: Int!, $timestampLt: Int!, $minAmountUSD: BigDecimal!) {
   swaps(
@@ -52,7 +52,51 @@ query GetSwaps($first: Int!, $skip: Int!, $timestampGte: Int!, $timestampLt: Int
 }
 `
 
-// UniswapV3SwapsQuery Uniswap V3 Swaps GraphQL 查询。
+// UniswapV2SwapsByPairQuery Uniswap V2 Swaps GraphQL 查询（按 pair 地址过滤）。
+const UniswapV2SwapsByPairQuery = `
+query GetSwapsByPairs($first: Int!, $skip: Int!, $timestampGte: Int!, $timestampLt: Int!, $minAmountUSD: BigDecimal!, $pairs: [String!]!) {
+  swaps(
+    first: $first
+    skip: $skip
+    orderBy: timestamp
+    orderDirection: asc
+    where: {
+      timestamp_gte: $timestampGte
+      timestamp_lt: $timestampLt
+      amountUSD_gte: $minAmountUSD
+      pair_in: $pairs
+    }
+  ) {
+    id
+    transaction {
+      id
+      timestamp
+      blockNumber
+    }
+    timestamp
+    pair {
+      id
+      token0 {
+        id
+        symbol
+      }
+      token1 {
+        id
+        symbol
+      }
+    }
+    sender
+    to
+    amount0In
+    amount1In
+    amount0Out
+    amount1Out
+    amountUSD
+  }
+}
+`
+
+// UniswapV3SwapsQuery Uniswap V3 Swaps GraphQL 查询（全量，无 pool 过滤）。
 const UniswapV3SwapsQuery = `
 query GetSwaps($first: Int!, $timestamp_gte: Int!, $timestamp_lt: Int!, $minAmountUSD: String!, $lastID: String!) {
   swaps(
@@ -63,6 +107,132 @@ query GetSwaps($first: Int!, $timestamp_gte: Int!, $timestamp_lt: Int!, $minAmou
       timestamp_gte: $timestamp_gte
       timestamp_lt: $timestamp_lt
       amountUSD_gte: $minAmountUSD
+      id_gt: $lastID
+    }
+  ) {
+    id
+    transaction {
+      id
+      timestamp
+      blockNumber
+    }
+    timestamp
+    pool {
+      id
+      token0 {
+        id
+        symbol
+      }
+      token1 {
+        id
+        symbol
+      }
+    }
+    origin
+    amount0
+    amount1
+    amountUSD
+  }
+}
+`
+
+// UniswapV3SwapsByPoolQuery Uniswap V3 Swaps GraphQL 查询（按 pool 地址过滤）。
+const UniswapV3SwapsByPoolQuery = `
+query GetSwapsByPools($first: Int!, $timestamp_gte: Int!, $timestamp_lt: Int!, $minAmountUSD: String!, $lastID: String!, $pools: [String!]!) {
+  swaps(
+    first: $first
+    orderBy: timestamp
+    orderDirection: asc
+    where: {
+      timestamp_gte: $timestamp_gte
+      timestamp_lt: $timestamp_lt
+      amountUSD_gte: $minAmountUSD
+      pool_in: $pools
+      id_gt: $lastID
+    }
+  ) {
+    id
+    transaction {
+      id
+      timestamp
+      blockNumber
+    }
+    timestamp
+    pool {
+      id
+      token0 {
+        id
+        symbol
+      }
+      token1 {
+        id
+        symbol
+      }
+    }
+    origin
+    amount0
+    amount1
+    amountUSD
+  }
+}
+`
+
+// UniswapV2SwapsByWalletQuery Uniswap V2 Swaps GraphQL 查询（按钱包地址过滤，种子模式）。
+const UniswapV2SwapsByWalletQuery = `
+query GetSwapsByWallets($first: Int!, $skip: Int!, $timestampGte: Int!, $timestampLt: Int!, $minAmountUSD: BigDecimal!, $wallets: [String!]!) {
+  swaps(
+    first: $first
+    skip: $skip
+    orderBy: timestamp
+    orderDirection: asc
+    where: {
+      timestamp_gte: $timestampGte
+      timestamp_lt: $timestampLt
+      amountUSD_gte: $minAmountUSD
+      to_in: $wallets
+    }
+  ) {
+    id
+    transaction {
+      id
+      timestamp
+      blockNumber
+    }
+    timestamp
+    pair {
+      id
+      token0 {
+        id
+        symbol
+      }
+      token1 {
+        id
+        symbol
+      }
+    }
+    sender
+    to
+    amount0In
+    amount1In
+    amount0Out
+    amount1Out
+    amountUSD
+  }
+}
+`
+
+// UniswapV3SwapsByWalletQuery Uniswap V3 Swaps GraphQL 查询（按钱包地址过滤，种子模式）。
+const UniswapV3SwapsByWalletQuery = `
+query GetSwapsByWallets($first: Int!, $timestamp_gte: Int!, $timestamp_lt: Int!, $minAmountUSD: String!, $lastID: String!, $wallets: [String!]!) {
+  swaps(
+    first: $first
+    orderBy: timestamp
+    orderDirection: asc
+    where: {
+      timestamp_gte: $timestamp_gte
+      timestamp_lt: $timestamp_lt
+      amountUSD_gte: $minAmountUSD
+      origin_in: $wallets
       id_gt: $lastID
     }
   ) {
@@ -152,21 +322,36 @@ type V3SwapsResponse struct {
 }
 
 // FetchUniswapV2Swaps 查询 Uniswap V2 Swaps（分页）。
-func (c *Client) FetchUniswapV2Swaps(ctx context.Context, startTime, endTime time.Time, minAmountUSD float64, batchSize int) ([]V2SwapsResponse, error) {
+// pairs 不为空时按交易对过滤；wallets 不为空时按钱包地址过滤（种子模式，优先级高于 pairs）。
+func (c *Client) FetchUniswapV2Swaps(ctx context.Context, startTime, endTime time.Time, minAmountUSD float64, batchSize int, pairs []string, wallets []string) ([]V2SwapsResponse, error) {
 	var allResults []V2SwapsResponse
 	skip := 0
-	
+
+	queryStr := UniswapV2SwapsQuery
+	switch {
+	case len(wallets) > 0:
+		queryStr = UniswapV2SwapsByWalletQuery
+	case len(pairs) > 0:
+		queryStr = UniswapV2SwapsByPairQuery
+	}
+
 	for {
 		vars := map[string]interface{}{
-			"first":         batchSize,
-			"skip":          skip,
-			"timestampGte":  int(startTime.Unix()),
-			"timestampLt":   int(endTime.Unix()),
-			"minAmountUSD":  fmt.Sprintf("%f", minAmountUSD),
+			"first":        batchSize,
+			"skip":         skip,
+			"timestampGte": int(startTime.Unix()),
+			"timestampLt":  int(endTime.Unix()),
+			"minAmountUSD": fmt.Sprintf("%f", minAmountUSD),
+		}
+		switch {
+		case len(wallets) > 0:
+			vars["wallets"] = wallets
+		case len(pairs) > 0:
+			vars["pairs"] = pairs
 		}
 
 		var resp V2SwapsResponse
-		if err := c.Query(ctx, UniswapV2SwapsQuery, vars, &resp); err != nil {
+		if err := c.Query(ctx, queryStr, vars, &resp); err != nil {
 			return allResults, fmt.Errorf("query V2 swaps (skip=%d): %w", skip, err)
 		}
 
@@ -175,27 +360,36 @@ func (c *Client) FetchUniswapV2Swaps(ctx context.Context, startTime, endTime tim
 		}
 
 		allResults = append(allResults, resp)
-		
+
 		if len(resp.Swaps) < batchSize {
 			break
 		}
-		
+
 		skip += batchSize
-		
+
 		// The Graph 限制 skip <= 5000
 		if skip >= 5000 {
 			return allResults, fmt.Errorf("reached skip limit (5000), use time-based pagination")
 		}
 	}
-	
+
 	return allResults, nil
 }
 
 // FetchUniswapV3Swaps 查询 Uniswap V3 Swaps（使用 ID 游标分页）。
-func (c *Client) FetchUniswapV3Swaps(ctx context.Context, startTime, endTime time.Time, minAmountUSD float64, batchSize int) ([]V3SwapsResponse, error) {
+// pools 不为空时按交易对过滤；wallets 不为空时按钱包地址过滤（种子模式，优先级高于 pools）。
+func (c *Client) FetchUniswapV3Swaps(ctx context.Context, startTime, endTime time.Time, minAmountUSD float64, batchSize int, pools []string, wallets []string) ([]V3SwapsResponse, error) {
 	var allResults []V3SwapsResponse
 	lastID := ""
-	
+
+	queryStr := UniswapV3SwapsQuery
+	switch {
+	case len(wallets) > 0:
+		queryStr = UniswapV3SwapsByWalletQuery
+	case len(pools) > 0:
+		queryStr = UniswapV3SwapsByPoolQuery
+	}
+
 	for {
 		vars := map[string]interface{}{
 			"first":         batchSize,
@@ -204,9 +398,15 @@ func (c *Client) FetchUniswapV3Swaps(ctx context.Context, startTime, endTime tim
 			"minAmountUSD":  fmt.Sprintf("%f", minAmountUSD),
 			"lastID":        lastID,
 		}
+		switch {
+		case len(wallets) > 0:
+			vars["wallets"] = wallets
+		case len(pools) > 0:
+			vars["pools"] = pools
+		}
 
 		var resp V3SwapsResponse
-		if err := c.Query(ctx, UniswapV3SwapsQuery, vars, &resp); err != nil {
+		if err := c.Query(ctx, queryStr, vars, &resp); err != nil {
 			return allResults, fmt.Errorf("query V3 swaps (lastID=%s): %w", lastID, err)
 		}
 
@@ -216,12 +416,12 @@ func (c *Client) FetchUniswapV3Swaps(ctx context.Context, startTime, endTime tim
 
 		allResults = append(allResults, resp)
 		lastID = resp.Swaps[len(resp.Swaps)-1].ID
-		
+
 		if len(resp.Swaps) < batchSize {
 			break
 		}
 	}
-	
+
 	return allResults, nil
 }
 

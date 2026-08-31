@@ -41,11 +41,13 @@ export function Wallets() {
   if (loading) return <p className="text-muted">加载中...</p>
 
   return (
-    <div className="page">
-      <h2>跟单钱包</h2>
-      <p className="text-muted">
-        跟单钱包由系统生成，私钥加密存储在服务端。请向钱包地址充值原生币（BNB/ETH）用于自动跟单。
-      </p>
+    <div className="page-wrap">
+      <div className="page-header">
+        <div>
+          <h2>跟单钱包</h2>
+          <p className="page-desc">系统生成钱包，私钥加密存储。请向钱包地址充值 BNB/ETH 用于自动跟单。</p>
+        </div>
+      </div>
 
       {message && <div className="info-banner">{message}</div>}
 

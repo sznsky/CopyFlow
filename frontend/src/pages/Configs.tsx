@@ -38,11 +38,14 @@ export function Configs() {
   if (loading) return <p className="text-muted">加载中...</p>
 
   return (
-    <div className="page">
-      <div className="section-header">
-        <h2>跟单配置</h2>
+    <div className="page-wrap">
+      <div className="page-header">
+        <div>
+          <h2>跟单配置</h2>
+          <p className="page-desc">设置要跟单的地址、链和交易策略</p>
+        </div>
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '取消' : '新增配置'}
+          {showForm ? '取消' : '+ 新增配置'}
         </button>
       </div>
 
@@ -59,43 +62,57 @@ export function Configs() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <table className="table">
-        <thead>
-          <tr>
-            <th>链</th>
-            <th>DEX</th>
-            <th>领头地址</th>
-            <th>模式</th>
-            <th>金额/比例</th>
-            <th>状态</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {configs.length === 0 ? (
-            <tr><td colSpan={7} className="text-muted">暂无配置，点击「新增配置」开始</td></tr>
-          ) : (
-            configs.map((cfg) => (
-              <tr key={cfg.id}>
-                <td>{cfg.chain_id}</td>
-                <td>{cfg.dex_type}</td>
-                <td className="mono">{cfg.leader_address}</td>
-                <td>{cfg.copy_mode === 'ratio' ? '等比例' : '固定金额'}</td>
-                <td>{cfg.copy_amount}</td>
-                <td>{cfg.is_active ? '启用' : '停用'}</td>
-                <td className="actions">
-                  <button className="btn btn-sm" onClick={() => handleToggle(cfg)}>
-                    {cfg.is_active ? '停用' : '启用'}
-                  </button>
-                  <button className="btn btn-sm btn-danger" onClick={() => handleDelete(cfg.id)}>
-                    删除
-                  </button>
+      <div className="table-wrap">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>链</th>
+              <th>DEX</th>
+              <th>领头地址</th>
+              <th>模式</th>
+              <th>金额/比例</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {configs.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="text-muted" style={{ textAlign: 'center', padding: '32px 14px' }}>
+                  暂无配置，点击「新增配置」开始
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              configs.map((cfg) => (
+                <tr key={cfg.id}>
+                  <td>{cfg.chain_id}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{cfg.dex_type}</td>
+                  <td className="mono">{cfg.leader_address}</td>
+                  <td>
+                    <span className="badge badge-pending">
+                      {cfg.copy_mode === 'ratio' ? '等比例' : '固定金额'}
+                    </span>
+                  </td>
+                  <td className="mono">{cfg.copy_amount}</td>
+                  <td>
+                    <span className={`badge ${cfg.is_active ? 'badge-success' : 'badge-skipped'}`}>
+                      {cfg.is_active ? '启用' : '停用'}
+                    </span>
+                  </td>
+                  <td className="actions">
+                    <button className="btn btn-sm btn-secondary" onClick={() => handleToggle(cfg)}>
+                      {cfg.is_active ? '停用' : '启用'}
+                    </button>
+                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(cfg.id)}>
+                      删除
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

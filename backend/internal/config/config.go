@@ -78,12 +78,15 @@ type SmartMoneyConfig struct {
 	Enabled           bool
 	ChainID           int
 	MinAmountUSD      float64
-	RetentionDays     int // 数据保留天数（默认 180 天）
+	RetentionDays     int      // 数据保留天数（默认 180 天）
 	TopWalletCount    int
 	MinWalletScore    float64
-	SignalDays        int // 信号聚合分析天数
+	SignalDays        int      // 信号聚合分析天数
 	SyncIntervalHours int
-	BatchSize         int // The Graph 分页大小
+	BatchSize         int      // The Graph 分页大小
+	EvalDays          int      // 评分评估窗口天数（默认 30 天）
+	Pairs             []string // 监听的交易对地址（空表示不过滤，seed_wallets 模式下忽略）
+	SeedWallets       []string // 手动维护的种子钱包地址，非空时优先使用此模式
 }
 
 // ChainConfig 单条链的 RPC 与 DEX 配置。
@@ -180,6 +183,9 @@ func Load() (*Config, error) {
 			SignalDays:        viper.GetInt("smartmoney.signal_days"),
 			SyncIntervalHours: viper.GetInt("smartmoney.sync_interval_hours"),
 			BatchSize:         viper.GetInt("smartmoney.batch_size"),
+			EvalDays:          viper.GetInt("smartmoney.eval_days"),
+			Pairs:             viper.GetStringSlice("smartmoney.pairs"),
+			SeedWallets:       viper.GetStringSlice("smartmoney.seed_wallets"),
 		},
 	}
 
@@ -207,13 +213,16 @@ func setDefaults() {
 	// Smart Money defaults
 	viper.SetDefault("smartmoney.enabled", false)
 	viper.SetDefault("smartmoney.chain_id", 1)
-	viper.SetDefault("smartmoney.min_amount_usd", 10000)
+	viper.SetDefault("smartmoney.min_amount_usd", 500)
 	viper.SetDefault("smartmoney.retention_days", 180)
 	viper.SetDefault("smartmoney.top_wallet_count", 20)
 	viper.SetDefault("smartmoney.min_wallet_score", 60)
 	viper.SetDefault("smartmoney.signal_days", 3)
 	viper.SetDefault("smartmoney.sync_interval_hours", 24)
 	viper.SetDefault("smartmoney.batch_size", 1000)
+	viper.SetDefault("smartmoney.eval_days", 30)
+	viper.SetDefault("smartmoney.pairs", []string{})
+	viper.SetDefault("smartmoney.seed_wallets", []string{})
 
 	// BSC mainnet defaults (MVP primary chain)
 	viper.SetDefault("chains.bsc.chain_id", 56)

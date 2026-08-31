@@ -19,7 +19,7 @@ func (s *Service) AggregateTokenSignals(days int) error {
 	startDate := endDate.AddDate(0, 0, -days)
 	
 	// 获取 Top 钱包
-	topWallets, err := s.GetTopWallets(20, 60) // Top 20，最低分60
+	topWallets, err := s.GetTopWallets(20, s.minWalletScore)
 	if err != nil {
 		return fmt.Errorf("get top wallets: %w", err)
 	}
