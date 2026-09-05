@@ -16,13 +16,15 @@ import (
 
 // SmartMoneyHandler 聪明钱 API 处理器。
 type SmartMoneyHandler struct {
-	service *smartmoney.Service
+	service        *smartmoney.Service
+	minWalletScore float64 // 进入首页统计的最低分（来自 config）
 }
 
 // NewSmartMoneyHandler 创建聪明钱处理器实例。
 func NewSmartMoneyHandler(st *store.Store, v2Endpoint, v3Endpoint, apiKey string, chainID, batchSize int, pairs []string, evalDays int, seedWallets []string, minWalletScore float64) *SmartMoneyHandler {
 	return &SmartMoneyHandler{
-		service: smartmoney.NewService(st, v2Endpoint, v3Endpoint, apiKey, chainID, batchSize, pairs, evalDays, seedWallets, minWalletScore),
+		service:        smartmoney.NewService(st, v2Endpoint, v3Endpoint, apiKey, chainID, batchSize, pairs, evalDays, seedWallets, minWalletScore),
+		minWalletScore: minWalletScore,
 	}
 }
 
@@ -46,7 +48,7 @@ func (h *SmartMoneyHandler) GetTopWallets(c *gin.Context) {
 		req.Limit = 20
 	}
 	if req.MinScore == 0 {
-		req.MinScore = 60
+		req.MinScore = h.minWalletScore
 	}
 	
 	wallets, err := h.service.GetTopWallets(req.Limit, req.MinScore)
@@ -64,12 +66,32 @@ func (h *SmartMoneyHandler) GetTopWallets(c *gin.Context) {
 // GetDashboardStats 获取首页统计指标。
 // GET /api/dashboard/stats
 func (h *SmartMoneyHandler) GetDashboardStats(c *gin.Context) {
-	stats, err := h.service.GetDashboardStats(60)
+	stats, err := h.service.GetDashboardStats(h.minWalletScore)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, stats)
+}
+
+// GetRecentActivity 获取高分钱包最新交易动态。
+// GET /api/recent-activity?min_score=20&limit=8
+func (h *SmartMoneyHandler) GetRecentActivity(c *gin.Context) {
+	minScore := h.minWalletScore
+	if v, err := strconv.ParseFloat(c.Query("min_score"), 64); err == nil && v >= 0 {
+		minScore = v
+	}
+	limit := 8
+	if v, err := strconv.Atoi(c.Query("limit")); err == nil && v > 0 && v <= 50 {
+		limit = v
+	}
+
+	items, err := h.service.GetRecentActivity(minScore, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"activities": items, "count": len(items)})
 }
 
 // GetTopSignalsRequest 获取代币信号请求。

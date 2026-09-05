@@ -99,6 +99,7 @@ func main() {
 		// 首页公开统计（无需登录）
 		if smartMoneyH != nil {
 			api.GET("/dashboard/stats", smartMoneyH.GetDashboardStats)
+			api.GET("/recent-activity", smartMoneyH.GetRecentActivity)
 			// 聪明钱只读接口：公开，无需登录
 			api.GET("/smart-wallets", smartMoneyH.GetTopWallets)
 			api.GET("/token-signals", smartMoneyH.GetTopSignals)

@@ -101,8 +101,8 @@ func runHistoricalSync(service *smartmoney.Service, cfg *config.Config) {
 	}
 	logger.Info("========== Starting historical sync ==========", "days", evalDays)
 
-	endTime := time.Now()                          // 当前时间
-	startTime := endTime.AddDate(0, 0, -evalDays)  // 往前 eval_days 天
+	endTime := time.Now()                         // 当前时间
+	startTime := endTime.AddDate(0, 0, -evalDays) // 往前 eval_days 天
 
 	// 分批拉取，每次 30 天
 	batchDays := 30

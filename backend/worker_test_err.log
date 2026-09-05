@@ -1,0 +1,175 @@
+2026-09-05T16:47:32.538+0800	[34mINFO[0m	smartmoney-worker/main.go:60	SmartMoney Worker started	{"chain_id": 1, "sync_interval_hours": 1, "min_amount_usd": 100, "retention_days": 180, "eval_days": 180, "mode": "seed_wallets", "seed_wallets_count": 2457}
+2026-09-05T16:47:32.550+0800	[34mINFO[0m	smartmoney-worker/main.go:137	========== Starting incremental cycle ==========
+2026-09-05T16:47:32.552+0800	[34mINFO[0m	smartmoney-worker/main.go:149	Step 1: Syncing recent trades	{"from": "2026-09-05 15:47:32", "to": "2026-09-05 16:47:32"}
+2026-09-05T16:47:32.550+0800	[34mINFO[0m	smartmoney-worker/main.go:102	========== Starting historical sync ==========	{"days": 180}
+2026-09-05T16:47:32.555+0800	[34mINFO[0m	smartmoney-worker/main.go:117	Historical batch	{"start_date": "2026-03-09", "end_date": "2026-04-08"}
+2026-09-05T16:47:32.555+0800	[34mINFO[0m	smartmoney/sync.go:372	Starting seed wallet sync	{"wallet_count": 2457, "sync_type": "historical", "start_date": "2026-03-09", "end_date": "2026-04-08"}
+2026-09-05T16:47:32.556+0800	[34mINFO[0m	smartmoney/sync.go:58	Starting The Graph sync	{"sync_type": "historical", "start_date": "2026-03-09", "end_date": "2026-04-08", "min_amount_usd": 100}
+2026-09-05T16:47:32.556+0800	[34mINFO[0m	smartmoney/sync.go:72	Pair filter active	{"pairs_count": 5}
+2026-09-05T16:47:32.556+0800	[34mINFO[0m	smartmoney/sync.go:76	Syncing Uniswap V2...
+2026-09-05T16:47:32.555+0800	[34mINFO[0m	smartmoney/sync.go:372	Starting seed wallet sync	{"wallet_count": 2457, "sync_type": "incremental", "start_date": "2026-09-05", "end_date": "2026-09-05"}
+2026-09-05T16:47:32.556+0800	[34mINFO[0m	smartmoney/sync.go:58	Starting The Graph sync	{"sync_type": "incremental", "start_date": "2026-09-05", "end_date": "2026-09-05", "min_amount_usd": 100}
+2026-09-05T16:47:32.556+0800	[34mINFO[0m	smartmoney/sync.go:72	Pair filter active	{"pairs_count": 5}
+2026-09-05T16:47:32.557+0800	[34mINFO[0m	smartmoney/sync.go:76	Syncing Uniswap V2...
+2026-09-05T16:47:35.704+0800	[34mINFO[0m	smartmoney/sync.go:84	V2 completed	{"inserted": 19, "updated": 0, "skipped": 0}
+2026-09-05T16:47:35.704+0800	[34mINFO[0m	smartmoney/sync.go:92	Syncing Uniswap V3...
+2026-09-05T16:47:49.801+0800	[34mINFO[0m	smartmoney/sync.go:100	V3 completed	{"inserted": 1353, "updated": 0, "skipped": 1609}
+2026-09-05T16:47:49.807+0800	[34mINFO[0m	smartmoney/sync.go:124	Sync completed	{"total_inserted": 1372, "total_updated": 0, "total_skipped": 1609, "duration_sec": 17.2507692}
+2026-09-05T16:47:49.808+0800	[34mINFO[0m	smartmoney-worker/main.go:154	Step 1: ✓ Trades synced
+2026-09-05T16:47:51.808+0800	[34mINFO[0m	smartmoney-worker/main.go:177	Step 2: Calculating PNL for trades
+2026-09-05T16:47:51.808+0800	[34mINFO[0m	smartmoney/scoring.go:457	Starting PNL calculation for trades
+2026-09-05T16:47:51.818+0800	[34mINFO[0m	smartmoney/scoring.go:470	Found sell trades to calculate PNL	{"count": 330}
+2026-09-05T16:47:52.277+0800	[34mINFO[0m	smartmoney/scoring.go:520	PNL calculation completed	{"matched": 21, "skipped": 309}
+2026-09-05T16:47:52.278+0800	[34mINFO[0m	smartmoney-worker/main.go:181	Step 2: ✓ PNL calculated
+2026-09-05T16:47:52.278+0800	[34mINFO[0m	smartmoney-worker/main.go:185	Step 3: Calculating wallet scores
+2026-09-05T16:47:52.279+0800	[34mINFO[0m	smartmoney/scoring.go:18	Starting wallet score calculation
+2026-09-05T16:47:52.281+0800	[34mINFO[0m	smartmoney/scoring.go:40	Found wallets to evaluate	{"count": 256}
+2026-09-05T16:47:56.638+0800	[34mINFO[0m	smartmoney/scoring.go:378	Updated wallet rankings	{"count": 256}
+2026-09-05T16:47:56.639+0800	[34mINFO[0m	smartmoney/scoring.go:57	Wallet score calculation completed
+2026-09-05T16:47:56.639+0800	[34mINFO[0m	smartmoney-worker/main.go:189	Step 3: ✓ Wallet scores calculated
+2026-09-05T16:47:56.639+0800	[34mINFO[0m	smartmoney-worker/main.go:193	Step 4: Aggregating token signals
+2026-09-05T16:47:56.639+0800	[34mINFO[0m	smartmoney/signals.go:15	Starting token signal aggregation	{"days": 3}
+2026-09-05T16:47:56.641+0800	[34mINFO[0m	smartmoney/signals.go:32	Analyzing trades from top wallets	{"wallet_count": 20}
+2026-09-05T16:47:56.644+0800	[34mINFO[0m	smartmoney/signals.go:53	Found buy trades to analyze	{"count": 76}
+2026-09-05T16:47:57.446+0800	[34mINFO[0m	smartmoney/signals.go:152	Token signal aggregation completed	{"token_count": 25}
+2026-09-05T16:47:57.449+0800	[34mINFO[0m	smartmoney-worker/main.go:197	Step 4: ✓ Token signals aggregated
+2026-09-05T16:47:57.449+0800	[34mINFO[0m	smartmoney-worker/main.go:162	Step 4: Cleaning up old data
+2026-09-05T16:47:57.449+0800	[34mINFO[0m	smartmoney/sync.go:385	Cleaning up old trades	{"cutoff_date": "2026-03-09", "retention_days": 180}
+2026-09-05T16:47:57.450+0800	[34mINFO[0m	smartmoney/sync.go:397	Cleanup completed	{"deleted_rows": 0}
+2026-09-05T16:47:57.450+0800	[34mINFO[0m	smartmoney-worker/main.go:166	Step 4: ✓ Cleanup completed
+2026-09-05T16:47:57.450+0800	[34mINFO[0m	smartmoney-worker/main.go:169	========== Incremental cycle completed ==========	{"next_cycle_in_hours": 1}
+2026-09-05T16:48:13.191+0800	[31mERROR[0m	smartmoney/sync.go:79	V2 sync error	{"error": "fetch V2 swaps: reached skip limit (5000), use time-based pagination"}
+copyflow/internal/smartmoney.(*Service).SyncTradesFromTheGraph
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:79
+copyflow/internal/smartmoney.(*Service).SyncSeedWallets
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:378
+main.syncOnce
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:87
+main.runHistoricalSync
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:122
+2026-09-05T16:48:13.195+0800	[34mINFO[0m	smartmoney/sync.go:92	Syncing Uniswap V3...
+2026-09-05T16:49:01.565+0800	[34mINFO[0m	smartmoney/sync.go:100	V3 completed	{"inserted": 3956, "updated": 0, "skipped": 5617}
+2026-09-05T16:49:01.567+0800	[34mINFO[0m	smartmoney/sync.go:124	Sync completed	{"total_inserted": 3956, "total_updated": 0, "total_skipped": 5617, "duration_sec": 89.0116556}
+2026-09-05T16:49:06.569+0800	[34mINFO[0m	smartmoney-worker/main.go:117	Historical batch	{"start_date": "2026-04-08", "end_date": "2026-05-08"}
+2026-09-05T16:49:06.608+0800	[34mINFO[0m	smartmoney/sync.go:372	Starting seed wallet sync	{"wallet_count": 2457, "sync_type": "historical", "start_date": "2026-04-08", "end_date": "2026-05-08"}
+2026-09-05T16:49:06.609+0800	[34mINFO[0m	smartmoney/sync.go:58	Starting The Graph sync	{"sync_type": "historical", "start_date": "2026-04-08", "end_date": "2026-05-08", "min_amount_usd": 100}
+2026-09-05T16:49:06.610+0800	[34mINFO[0m	smartmoney/sync.go:72	Pair filter active	{"pairs_count": 5}
+2026-09-05T16:49:06.610+0800	[34mINFO[0m	smartmoney/sync.go:76	Syncing Uniswap V2...
+2026-09-05T16:49:40.728+0800	[31mERROR[0m	smartmoney/sync.go:79	V2 sync error	{"error": "fetch V2 swaps: reached skip limit (5000), use time-based pagination"}
+copyflow/internal/smartmoney.(*Service).SyncTradesFromTheGraph
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:79
+copyflow/internal/smartmoney.(*Service).SyncSeedWallets
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:378
+main.syncOnce
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:87
+main.runHistoricalSync
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:122
+2026-09-05T16:49:40.760+0800	[34mINFO[0m	smartmoney/sync.go:92	Syncing Uniswap V3...
+2026-09-05T16:50:43.442+0800	[34mINFO[0m	smartmoney/sync.go:100	V3 completed	{"inserted": 5416, "updated": 0, "skipped": 7338}
+2026-09-05T16:50:43.443+0800	[34mINFO[0m	smartmoney/sync.go:124	Sync completed	{"total_inserted": 5416, "total_updated": 0, "total_skipped": 7338, "duration_sec": 96.8335573}
+2026-09-05T16:50:48.446+0800	[34mINFO[0m	smartmoney-worker/main.go:117	Historical batch	{"start_date": "2026-05-08", "end_date": "2026-06-07"}
+2026-09-05T16:50:48.446+0800	[34mINFO[0m	smartmoney/sync.go:372	Starting seed wallet sync	{"wallet_count": 2457, "sync_type": "historical", "start_date": "2026-05-08", "end_date": "2026-06-07"}
+2026-09-05T16:50:48.447+0800	[34mINFO[0m	smartmoney/sync.go:58	Starting The Graph sync	{"sync_type": "historical", "start_date": "2026-05-08", "end_date": "2026-06-07", "min_amount_usd": 100}
+2026-09-05T16:50:48.448+0800	[34mINFO[0m	smartmoney/sync.go:72	Pair filter active	{"pairs_count": 5}
+2026-09-05T16:50:48.448+0800	[34mINFO[0m	smartmoney/sync.go:76	Syncing Uniswap V2...
+2026-09-05T16:51:29.299+0800	[31mERROR[0m	smartmoney/sync.go:79	V2 sync error	{"error": "fetch V2 swaps: reached skip limit (5000), use time-based pagination"}
+copyflow/internal/smartmoney.(*Service).SyncTradesFromTheGraph
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:79
+copyflow/internal/smartmoney.(*Service).SyncSeedWallets
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:378
+main.syncOnce
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:87
+main.runHistoricalSync
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:122
+2026-09-05T16:51:29.299+0800	[34mINFO[0m	smartmoney/sync.go:92	Syncing Uniswap V3...
+2026-09-05T16:52:15.897+0800	[34mINFO[0m	smartmoney/sync.go:100	V3 completed	{"inserted": 5208, "updated": 0, "skipped": 4345}
+2026-09-05T16:52:15.899+0800	[34mINFO[0m	smartmoney/sync.go:124	Sync completed	{"total_inserted": 5208, "total_updated": 0, "total_skipped": 4345, "duration_sec": 87.4510773}
+2026-09-05T16:52:20.901+0800	[34mINFO[0m	smartmoney-worker/main.go:117	Historical batch	{"start_date": "2026-06-07", "end_date": "2026-07-07"}
+2026-09-05T16:52:20.940+0800	[34mINFO[0m	smartmoney/sync.go:372	Starting seed wallet sync	{"wallet_count": 2457, "sync_type": "historical", "start_date": "2026-06-07", "end_date": "2026-07-07"}
+2026-09-05T16:52:20.941+0800	[34mINFO[0m	smartmoney/sync.go:58	Starting The Graph sync	{"sync_type": "historical", "start_date": "2026-06-07", "end_date": "2026-07-07", "min_amount_usd": 100}
+2026-09-05T16:52:20.941+0800	[34mINFO[0m	smartmoney/sync.go:72	Pair filter active	{"pairs_count": 5}
+2026-09-05T16:52:20.941+0800	[34mINFO[0m	smartmoney/sync.go:76	Syncing Uniswap V2...
+2026-09-05T16:52:56.551+0800	[31mERROR[0m	smartmoney/sync.go:79	V2 sync error	{"error": "fetch V2 swaps: reached skip limit (5000), use time-based pagination"}
+copyflow/internal/smartmoney.(*Service).SyncTradesFromTheGraph
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:79
+copyflow/internal/smartmoney.(*Service).SyncSeedWallets
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:378
+main.syncOnce
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:87
+main.runHistoricalSync
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:122
+2026-09-05T16:52:56.592+0800	[34mINFO[0m	smartmoney/sync.go:92	Syncing Uniswap V3...
+2026-09-05T16:53:15.347+0800	[34mINFO[0m	smartmoney/sync.go:100	V3 completed	{"inserted": 1573, "updated": 0, "skipped": 2157}
+2026-09-05T16:53:15.350+0800	[34mINFO[0m	smartmoney/sync.go:124	Sync completed	{"total_inserted": 1573, "total_updated": 0, "total_skipped": 2157, "duration_sec": 54.4084222}
+2026-09-05T16:53:20.353+0800	[34mINFO[0m	smartmoney-worker/main.go:117	Historical batch	{"start_date": "2026-07-07", "end_date": "2026-08-06"}
+2026-09-05T16:53:20.354+0800	[34mINFO[0m	smartmoney/sync.go:372	Starting seed wallet sync	{"wallet_count": 2457, "sync_type": "historical", "start_date": "2026-07-07", "end_date": "2026-08-06"}
+2026-09-05T16:53:20.355+0800	[34mINFO[0m	smartmoney/sync.go:58	Starting The Graph sync	{"sync_type": "historical", "start_date": "2026-07-07", "end_date": "2026-08-06", "min_amount_usd": 100}
+2026-09-05T16:53:20.356+0800	[34mINFO[0m	smartmoney/sync.go:72	Pair filter active	{"pairs_count": 5}
+2026-09-05T16:53:20.356+0800	[34mINFO[0m	smartmoney/sync.go:76	Syncing Uniswap V2...
+2026-09-05T16:53:53.302+0800	[31mERROR[0m	smartmoney/sync.go:79	V2 sync error	{"error": "fetch V2 swaps: reached skip limit (5000), use time-based pagination"}
+copyflow/internal/smartmoney.(*Service).SyncTradesFromTheGraph
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:79
+copyflow/internal/smartmoney.(*Service).SyncSeedWallets
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:378
+main.syncOnce
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:87
+main.runHistoricalSync
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:122
+2026-09-05T16:53:53.303+0800	[34mINFO[0m	smartmoney/sync.go:92	Syncing Uniswap V3...
+2026-09-05T16:54:33.298+0800	[34mINFO[0m	smartmoney/sync.go:100	V3 completed	{"inserted": 3569, "updated": 0, "skipped": 5291}
+2026-09-05T16:54:33.305+0800	[34mINFO[0m	smartmoney/sync.go:124	Sync completed	{"total_inserted": 3569, "total_updated": 0, "total_skipped": 5291, "duration_sec": 72.9489054}
+2026-09-05T16:54:38.305+0800	[34mINFO[0m	smartmoney-worker/main.go:117	Historical batch	{"start_date": "2026-08-06", "end_date": "2026-09-05"}
+2026-09-05T16:54:38.305+0800	[34mINFO[0m	smartmoney/sync.go:372	Starting seed wallet sync	{"wallet_count": 2457, "sync_type": "historical", "start_date": "2026-08-06", "end_date": "2026-09-05"}
+2026-09-05T16:54:38.306+0800	[34mINFO[0m	smartmoney/sync.go:58	Starting The Graph sync	{"sync_type": "historical", "start_date": "2026-08-06", "end_date": "2026-09-05", "min_amount_usd": 100}
+2026-09-05T16:54:38.307+0800	[34mINFO[0m	smartmoney/sync.go:72	Pair filter active	{"pairs_count": 5}
+2026-09-05T16:54:38.307+0800	[34mINFO[0m	smartmoney/sync.go:76	Syncing Uniswap V2...
+2026-09-05T16:55:11.003+0800	[31mERROR[0m	smartmoney/sync.go:79	V2 sync error	{"error": "fetch V2 swaps: reached skip limit (5000), use time-based pagination"}
+copyflow/internal/smartmoney.(*Service).SyncTradesFromTheGraph
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:79
+copyflow/internal/smartmoney.(*Service).SyncSeedWallets
+	D:/workspace_web3/CopyFlow/backend/internal/smartmoney/sync.go:378
+main.syncOnce
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:87
+main.runHistoricalSync
+	D:/workspace_web3/CopyFlow/backend/cmd/smartmoney-worker/main.go:122
+2026-09-05T16:55:11.042+0800	[34mINFO[0m	smartmoney/sync.go:92	Syncing Uniswap V3...
+2026-09-05T16:55:52.094+0800	[34mINFO[0m	smartmoney/sync.go:100	V3 completed	{"inserted": 2682, "updated": 0, "skipped": 3781}
+2026-09-05T16:55:52.096+0800	[34mINFO[0m	smartmoney/sync.go:124	Sync completed	{"total_inserted": 2682, "total_updated": 0, "total_skipped": 3781, "duration_sec": 73.7896133}
+2026-09-05T16:55:57.099+0800	[34mINFO[0m	smartmoney-worker/main.go:128	========== Historical sync completed ==========
+2026-09-05T16:55:57.139+0800	[34mINFO[0m	smartmoney-worker/main.go:131	Running post-historical analysis...
+2026-09-05T16:55:57.140+0800	[34mINFO[0m	smartmoney-worker/main.go:177	Step 2: Calculating PNL for trades
+2026-09-05T16:55:57.140+0800	[34mINFO[0m	smartmoney/scoring.go:457	Starting PNL calculation for trades
+2026-09-05T16:55:57.318+0800	[34mINFO[0m	smartmoney/scoring.go:470	Found sell trades to calculate PNL	{"count": 5264}
+2026-09-05T16:56:21.068+0800	[34mINFO[0m	smartmoney/scoring.go:520	PNL calculation completed	{"matched": 2191, "skipped": 3073}
+2026-09-05T16:56:21.069+0800	[34mINFO[0m	smartmoney-worker/main.go:181	Step 2: ✓ PNL calculated
+2026-09-05T16:56:21.069+0800	[34mINFO[0m	smartmoney-worker/main.go:185	Step 3: Calculating wallet scores
+2026-09-05T16:56:21.069+0800	[34mINFO[0m	smartmoney/scoring.go:18	Starting wallet score calculation
+2026-09-05T16:56:21.087+0800	[34mINFO[0m	smartmoney/scoring.go:40	Found wallets to evaluate	{"count": 886}
+2026-09-05T16:56:29.202+0800	[34mINFO[0m	smartmoney/scoring.go:378	Updated wallet rankings	{"count": 886}
+2026-09-05T16:56:29.203+0800	[34mINFO[0m	smartmoney/scoring.go:57	Wallet score calculation completed
+2026-09-05T16:56:29.204+0800	[34mINFO[0m	smartmoney-worker/main.go:189	Step 3: ✓ Wallet scores calculated
+2026-09-05T16:56:29.205+0800	[34mINFO[0m	smartmoney-worker/main.go:193	Step 4: Aggregating token signals
+2026-09-05T16:56:29.205+0800	[34mINFO[0m	smartmoney/signals.go:15	Starting token signal aggregation	{"days": 3}
+2026-09-05T16:56:29.211+0800	[34mINFO[0m	smartmoney/signals.go:32	Analyzing trades from top wallets	{"wallet_count": 20}
+2026-09-05T16:56:29.218+0800	[34mINFO[0m	smartmoney/signals.go:53	Found buy trades to analyze	{"count": 9}
+2026-09-05T16:56:29.289+0800	[34mINFO[0m	smartmoney/signals.go:152	Token signal aggregation completed	{"token_count": 4}
+2026-09-05T16:56:29.291+0800	[34mINFO[0m	smartmoney-worker/main.go:197	Step 4: ✓ Token signals aggregated
+2026-09-05T17:47:57.454+0800	[34mINFO[0m	smartmoney-worker/main.go:137	========== Starting incremental cycle ==========
+2026-09-05T17:47:57.455+0800	[34mINFO[0m	smartmoney-worker/main.go:149	Step 1: Syncing recent trades	{"from": "2026-09-05 16:47:57", "to": "2026-09-05 17:47:57"}
+2026-09-05T17:47:57.455+0800	[34mINFO[0m	smartmoney/sync.go:372	Starting seed wallet sync	{"wallet_count": 2457, "sync_type": "incremental", "start_date": "2026-09-05", "end_date": "2026-09-05"}
+2026-09-05T17:47:57.456+0800	[34mINFO[0m	smartmoney/sync.go:58	Starting The Graph sync	{"sync_type": "incremental", "start_date": "2026-09-05", "end_date": "2026-09-05", "min_amount_usd": 100}
+2026-09-05T17:47:57.458+0800	[34mINFO[0m	smartmoney/sync.go:72	Pair filter active	{"pairs_count": 5}
+2026-09-05T17:47:57.458+0800	[34mINFO[0m	smartmoney/sync.go:76	Syncing Uniswap V2...
+2026-09-05T17:47:59.799+0800	[34mINFO[0m	smartmoney/sync.go:84	V2 completed	{"inserted": 15, "updated": 0, "skipped": 0}
+2026-09-05T17:47:59.799+0800	[34mINFO[0m	smartmoney/sync.go:92	Syncing Uniswap V3...
+2026-09-05T17:48:06.574+0800	[34mINFO[0m	smartmoney/sync.go:100	V3 completed	{"inserted": 858, "updated": 0, "skipped": 785}
+2026-09-05T17:48:06.576+0800	[34mINFO[0m	smartmoney/sync.go:124	Sync completed	{"total_inserted": 873, "total_updated": 0, "total_skipped": 785, "duration_sec": 9.1179816}
+2026-09-05T17:48:06.578+0800	[34mINFO[0m	smartmoney-worker/main.go:154	Step 1: ✓ Trades synced
+2026-09-05T17:48:08.579+0800	[34mINFO[0m	smartmoney-worker/main.go:177	Step 2: Calculating PNL for trades
+2026-09-05T17:48:08.580+0800	[34mINFO[0m	smartmoney/scoring.go:457	Starting PNL calculation for trades
+2026-09-05T17:48:08.693+0800	[34mINFO[0m	smartmoney/scoring.go:470	Found sell trades to calculate PNL	{"count": 3424}
+2026-09-05T17:48:33.522+0800	[34mINFO[0m	smartmoney/scoring.go:520	PNL calculation completed	{"matched": 186, "skipped": 3238}
+2026-09-05T17:48:33.522+0800	[34mINFO[0m	smartmoney-worker/main.go:181	Step 2: ✓ PNL calculated
+2026-09-05T17:48:33.522+0800	[34mINFO[0m	smartmoney-worker/main.go:185	Step 3: Calculating wallet scores
+2026-09-05T17:48:33.522+0800	[34mINFO[0m	smartmoney/scoring.go:18	Starting wallet score calculation
+2026-09-05T17:48:33.545+0800	[34mINFO[0m	smartmoney/scoring.go:40	Found wallets to evaluate	{"count": 900}

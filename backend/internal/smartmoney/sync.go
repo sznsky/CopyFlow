@@ -26,6 +26,7 @@ type Service struct {
 	evalDays       int      // 评分评估窗口天数
 	seedWallets    []string // 手动维护的种子钱包地址（非空时优先使用）
 	minWalletScore float64  // 进入 Top 榜单的最低分
+	topWalletCount int      // 信号聚合使用的 Top 钱包数量
 }
 
 // NewService 创建聪明钱服务实例。
@@ -40,6 +41,7 @@ func NewService(st *store.Store, v2Endpoint, v3Endpoint, apiKey string, chainID,
 		evalDays:       evalDays,
 		seedWallets:    seedWallets,
 		minWalletScore: minWalletScore,
+		topWalletCount: 50, // 默认取 Top 50 用于信号聚合
 	}
 }
 

@@ -185,7 +185,10 @@ func Load() (*Config, error) {
 			BatchSize:         viper.GetInt("smartmoney.batch_size"),
 			EvalDays:          viper.GetInt("smartmoney.eval_days"),
 			Pairs:             viper.GetStringSlice("smartmoney.pairs"),
-			SeedWallets:       viper.GetStringSlice("smartmoney.seed_wallets"),
+			SeedWallets:       mergeSeedWallets(
+				viper.GetStringSlice("smartmoney.seed_wallets"),
+				viper.GetStringSlice("smartmoney.seed_wallets_uniswap"),
+			),
 		},
 	}
 
@@ -298,6 +301,24 @@ func (c *Config) GetChain(chainID int) *ChainConfig {
 		}
 	}
 	return nil
+}
+
+// mergeSeedWallets 合并两个种子钱包列表，去重，保持 manual 优先。
+// seed_wallets（手动维护）+ seed_wallets_uniswap（discover-wallets 生成）
+func mergeSeedWallets(manual, uniswap []string) []string {
+	seen := make(map[string]struct{}, len(manual)+len(uniswap))
+	result := make([]string, 0, len(manual)+len(uniswap))
+	for _, addr := range append(manual, uniswap...) {
+		lower := strings.ToLower(strings.TrimSpace(addr))
+		if lower == "" {
+			continue
+		}
+		if _, dup := seen[lower]; !dup {
+			seen[lower] = struct{}{}
+			result = append(result, lower)
+		}
+	}
+	return result
 }
 
 // resolveEnv 解析运行环境：优先 APP_ENV，其次 GO_ENV，默认 dev。

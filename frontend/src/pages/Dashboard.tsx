@@ -85,79 +85,66 @@ export function Dashboard() {
   // Load token signals
   useEffect(() => {
     apiClient
-      .get('/api/token-signals?limit=3&min_consensus_score=50')
+      .get('/api/token-signals?limit=3&min_consensus_score=20')
       .then((res) => setOpportunities(res.data.signals || []))
       .catch(() => setOpportunities([]))
       .finally(() => setOppLoading(false))
   }, [])
 
-  // Load top wallets → then fetch recent trades for activity feed
+  // Load top wallets for leaderboard (by score)
   useEffect(() => {
     let active = true
-
-    ;(async () => {
-      try {
-        const res = await apiClient.get('/api/smart-wallets?limit=5&min_score=60')
+    apiClient
+      .get('/api/smart-wallets?limit=5&min_score=60')
+      .then((res) => {
         if (!active) return
+        setTopWallets(res.data.wallets || [])
+      })
+      .catch(() => { if (active) setTopWallets([]) })
+      .finally(() => { if (active) setWalletsLoading(false) })
+    return () => { active = false }
+  }, [])
 
-        const wallets: SmartWallet[] = res.data.wallets || []
-        if (wallets.length === 0) {
-          setTopWallets([])
-          setActivities([])
-          return
-        }
-
-        setTopWallets(wallets)
-        setWalletsLoading(false)
-
-        // Fetch recent trades for top 3 wallets in parallel
-        const results = await Promise.all(
-          wallets.slice(0, 3).map((w) =>
-            apiClient
-              .get(`/api/wallet-history/${w.wallet_address}?limit=4`)
-              .then((r) => ({ wallet: w, trades: (r.data.trades || []) as WalletTrade[] }))
-              .catch(() => ({ wallet: w, trades: [] as WalletTrade[] }))
-          )
-        )
+  // Load recent activity directly — sorted by block_time DESC across ALL qualifying wallets
+  // (avoids stale data from high-scored but inactive wallets)
+  useEffect(() => {
+    let active = true
+    apiClient
+      .get('/api/recent-activity?limit=8&min_score=60')
+      .then((res) => {
         if (!active) return
+        const raw: Array<{
+          wallet_address: string
+          rank_position: number
+          is_buy: boolean
+          token_in: string
+          token_out: string
+          token_in_symbol: string
+          token_out_symbol: string
+          amount_usd: string
+          block_time: string
+          tx_hash: string
+        }> = res.data.activities || []
 
-        const items: ActivityItem[] = []
-        for (const { wallet, trades } of results) {
-          for (const t of trades) {
-            const sym = t.is_buy
-              ? (t.token_out_symbol || t.token_out.slice(0, 6)).toUpperCase()
-              : (t.token_in_symbol || t.token_in.slice(0, 6)).toUpperCase()
-            items.push({
-              id: String(t.id),
-              walletRank: wallet.rank_position ?? 0,
-              walletAddress: wallet.wallet_address,
-              action: t.is_buy ? 'buy' : 'sell',
-              token: sym,
-              amountUsd: parseFloat(t.amount_usd || '0'),
-              timeLabel: relativeTime(t.block_time),
-              rawTime: new Date(t.block_time).getTime(),
-            })
+        const items: ActivityItem[] = raw.map((r, idx) => {
+          const sym = r.is_buy
+            ? (r.token_out_symbol || r.token_out.slice(0, 6)).toUpperCase()
+            : (r.token_in_symbol || r.token_in.slice(0, 6)).toUpperCase()
+          return {
+            id: r.tx_hash || String(idx),
+            walletRank: r.rank_position ?? 0,
+            walletAddress: r.wallet_address,
+            action: r.is_buy ? 'buy' : 'sell',
+            token: sym,
+            amountUsd: parseFloat(r.amount_usd || '0'),
+            timeLabel: relativeTime(r.block_time),
+            rawTime: new Date(r.block_time).getTime(),
           }
-        }
-
-        if (items.length === 0) {
-          setActivities([])
-        } else {
-          items.sort((a, b) => b.rawTime - a.rawTime)
-          setActivities(items.slice(0, 8))
-        }
-      } catch {
-        if (!active) return
-        setTopWallets([])
-        setActivities([])
-      } finally {
-        if (active) {
-          setWalletsLoading(false)
-          setActivitiesLoading(false)
-        }
-      }
-    })()
-
+        })
+        setActivities(items)
+      })
+      .catch(() => { if (active) setActivities([]) })
+      .finally(() => { if (active) setActivitiesLoading(false) })
     return () => { active = false }
   }, [])
 

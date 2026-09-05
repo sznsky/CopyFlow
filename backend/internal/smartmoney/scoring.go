@@ -382,22 +382,101 @@ func (s *Service) updateWalletRankings() error {
 // GetTopWallets 获取 Top N 钱包。
 func (s *Service) GetTopWallets(limit int, minScore float64) ([]model.SmartWallet, error) {
 	var wallets []model.SmartWallet
-	
+
 	query := s.store.DB().Where("chain_id = ?", s.chainID)
-	
+
 	if minScore > 0 {
 		query = query.Where("score >= ?", minScore)
 	}
-	
+
 	err := query.Order("score DESC, total_pnl DESC").
 		Limit(limit).
 		Find(&wallets).Error
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("fetch top wallets: %w", err)
 	}
-	
+
 	return wallets, nil
+}
+
+// RecentActivityItem 首页聪明钱动态条目。
+type RecentActivityItem struct {
+	WalletAddress string          `json:"wallet_address"`
+	WalletScore   decimal.Decimal `json:"wallet_score"`
+	RankPosition  int             `json:"rank_position"`
+	TxHash        string          `json:"tx_hash"`
+	IsBuy         bool            `json:"is_buy"`
+	TokenIn       string          `json:"token_in"`
+	TokenOut      string          `json:"token_out"`
+	TokenInSymbol string          `json:"token_in_symbol"`
+	TokenOutSymbol string         `json:"token_out_symbol"`
+	AmountUSD     decimal.Decimal `json:"amount_usd"`
+	BlockTime     string          `json:"block_time"`
+}
+
+// GetRecentActivity 获取高分钱包最近的交易动态，按 block_time 倒序。
+// 直接 JOIN wallet_trades + smart_wallets，避免先取钱包再逐个查交易。
+func (s *Service) GetRecentActivity(minScore float64, limit int) ([]RecentActivityItem, error) {
+	type row struct {
+		WalletAddress  string
+		WalletScore    decimal.Decimal
+		RankPosition   int
+		TxHash         string
+		IsBuy          bool
+		TokenIn        string
+		TokenOut       string
+		TokenInSymbol  string
+		TokenOutSymbol string
+		AmountUSD      decimal.Decimal
+		BlockTime      string
+	}
+
+	var rows []row
+	err := s.store.DB().Raw(`
+		SELECT
+			t.wallet_address,
+			w.score          AS wallet_score,
+			w.rank_position,
+			t.tx_hash,
+			t.is_buy,
+			t.token_in,
+			t.token_out,
+			t.token_in_symbol,
+			t.token_out_symbol,
+			t.amount_usd,
+			t.block_time
+		FROM wallet_trades t
+		INNER JOIN smart_wallets w
+			ON w.wallet_address = t.wallet_address
+			AND w.chain_id = t.chain_id
+		WHERE t.chain_id = ?
+		  AND w.score >= ?
+		ORDER BY t.block_time DESC
+		LIMIT ?
+	`, s.chainID, minScore, limit).Scan(&rows).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("fetch recent activity: %w", err)
+	}
+
+	items := make([]RecentActivityItem, 0, len(rows))
+	for _, r := range rows {
+		items = append(items, RecentActivityItem{
+			WalletAddress:  r.WalletAddress,
+			WalletScore:    r.WalletScore,
+			RankPosition:   r.RankPosition,
+			TxHash:         r.TxHash,
+			IsBuy:          r.IsBuy,
+			TokenIn:        r.TokenIn,
+			TokenOut:       r.TokenOut,
+			TokenInSymbol:  r.TokenInSymbol,
+			TokenOutSymbol: r.TokenOutSymbol,
+			AmountUSD:      r.AmountUSD,
+			BlockTime:      r.BlockTime,
+		})
+	}
+	return items, nil
 }
 
 // DashboardStats 首页统计指标。
