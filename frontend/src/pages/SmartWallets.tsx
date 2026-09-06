@@ -14,7 +14,7 @@ export function SmartWallets() {
     try {
       setLoading(true)
       setError(null)
-      const res = await apiClient.get('/api/smart-wallets?limit=20&min_score=60')
+      const res = await apiClient.get<{ wallets: SmartWallet[] }>('/api/smart-wallets?limit=20&min_score=60')
       setWallets(res.data.wallets || [])
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } }; message?: string }

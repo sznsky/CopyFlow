@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { ConnectWallet } from '../components/ConnectWallet'
-import type { SmartWallet, TokenSignal, WalletTrade } from '../types'
+import type { SmartWallet, TokenSignal } from '../types'
 
 // ── Types ──────────────────────────────────────
 interface ActivityItem {
@@ -56,7 +56,17 @@ const RANK_MEDALS = ['🥇', '🥈', '🥉']
 // ── Main Dashboard ────────────────────────────
 export function Dashboard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { msg: toast, show: showToast } = useToast()
+
+  /** 需要登录才能跳转的链接，未登录时弹提示 */
+  const guardedLink = useCallback((to: string) => {
+    if (user) {
+      navigate(to)
+    } else {
+      showToast('请先连接钱包')
+    }
+  }, [user, navigate, showToast])
 
   const [opportunities, setOpportunities] = useState<TokenSignal[]>([])
   const [oppLoading, setOppLoading] = useState(true)
@@ -77,7 +87,7 @@ export function Dashboard() {
   // Load dashboard stats
   useEffect(() => {
     apiClient
-      .get('/api/dashboard/stats')
+      .get<{ monitored_wallets: number; today_signals: number; top_score: number; avg_win_rate: number }>('/api/dashboard/stats')
       .then((res) => setStats(res.data))
       .catch(() => setStats(null))
   }, [])
@@ -85,7 +95,7 @@ export function Dashboard() {
   // Load token signals
   useEffect(() => {
     apiClient
-      .get('/api/token-signals?limit=3&min_consensus_score=20')
+      .get<{ signals: TokenSignal[] }>('/api/token-signals?limit=3&min_consensus_score=20')
       .then((res) => setOpportunities(res.data.signals || []))
       .catch(() => setOpportunities([]))
       .finally(() => setOppLoading(false))
@@ -95,7 +105,7 @@ export function Dashboard() {
   useEffect(() => {
     let active = true
     apiClient
-      .get('/api/smart-wallets?limit=5&min_score=60')
+      .get<{ wallets: SmartWallet[] }>('/api/smart-wallets?limit=5&min_score=60')
       .then((res) => {
         if (!active) return
         setTopWallets(res.data.wallets || [])
@@ -110,10 +120,7 @@ export function Dashboard() {
   useEffect(() => {
     let active = true
     apiClient
-      .get('/api/recent-activity?limit=8&min_score=60')
-      .then((res) => {
-        if (!active) return
-        const raw: Array<{
+      .get<{ activities: Array<{
           wallet_address: string
           rank_position: number
           is_buy: boolean
@@ -124,7 +131,10 @@ export function Dashboard() {
           amount_usd: string
           block_time: string
           tx_hash: string
-        }> = res.data.activities || []
+        }> }>('/api/recent-activity?limit=8&min_score=60')
+      .then((res) => {
+        if (!active) return
+        const raw = res.data.activities || []
 
         const items: ActivityItem[] = raw.map((r, idx) => {
           const sym = r.is_buy
@@ -173,6 +183,7 @@ export function Dashboard() {
         <OpportunityCard
           opportunities={opportunities}
           loading={oppLoading}
+          onViewAll={() => guardedLink('/token-signals')}
           onOppClick={(sym, score) =>
             showToast(`智能分析：${sym} 综合评分 ${score}，多个聪明钱包共识买入`)
           }
@@ -180,6 +191,7 @@ export function Dashboard() {
         <ActivityCard
           activities={activities}
           loading={activitiesLoading}
+          onViewAll={() => guardedLink('/smart-wallets')}
           onActivityClick={(act) =>
             showToast(
               `钱包 #${act.walletRank} ${act.action === 'buy' ? '买入' : '卖出'} ${act.token} ${act.amountUsd > 0 ? formatUsd(act.amountUsd) : ''}，可一键复制策略`
@@ -189,7 +201,7 @@ export function Dashboard() {
       </div>
 
       {/* ── Section 4: Leaderboard Snapshot ── */}
-      <LeaderboardSnapshot wallets={topWallets.slice(0, 3)} loading={walletsLoading} />
+      <LeaderboardSnapshot wallets={topWallets.slice(0, 3)} loading={walletsLoading} onViewAll={() => guardedLink('/smart-wallets')} />
 
       {/* ── Section 5: CTA ── */}
       {!user && <GuestCTA />}
@@ -203,10 +215,12 @@ export function Dashboard() {
 function OpportunityCard({
   opportunities,
   loading,
+  onViewAll,
   onOppClick,
 }: {
   opportunities: TokenSignal[]
   loading: boolean
+  onViewAll: () => void
   onOppClick: (sym: string, score: number) => void
 }) {
   return (
@@ -216,7 +230,7 @@ function OpportunityCard({
         <h2>今日机会</h2>
         {opportunities.length > 0 && (
           <span className="card-header-actions">
-            <Link to="/token-signals" className="btn btn-sm btn-ghost">全部 →</Link>
+            <button onClick={onViewAll} className="btn btn-sm btn-ghost">全部 →</button>
           </span>
         )}
       </div>
@@ -270,10 +284,12 @@ function OpportunityCard({
 function ActivityCard({
   activities,
   loading,
+  onViewAll,
   onActivityClick,
 }: {
   activities: ActivityItem[]
   loading: boolean
+  onViewAll: () => void
   onActivityClick: (a: ActivityItem) => void
 }) {
   return (
@@ -282,7 +298,7 @@ function ActivityCard({
         <i className="fas fa-brain" />
         <h2>聪明钱动态</h2>
         <span className="card-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link to="/smart-wallets" className="btn btn-sm btn-ghost">全部 →</Link>
+          <button onClick={onViewAll} className="btn btn-sm btn-ghost">全部 →</button>
         </span>
       </div>
       <div className="activity-list">
@@ -329,9 +345,11 @@ function ActivityCard({
 function LeaderboardSnapshot({
   wallets,
   loading,
+  onViewAll,
 }: {
   wallets: SmartWallet[]
   loading: boolean
+  onViewAll: () => void
 }) {
   return (
     <div className="card leaderboard-snapshot">
@@ -339,7 +357,7 @@ function LeaderboardSnapshot({
         <i className="fas fa-medal" />
         <h2>聪明钱榜单</h2>
         <span className="card-header-actions">
-          <Link to="/smart-wallets" className="btn btn-sm btn-ghost">全部 →</Link>
+          <button onClick={onViewAll} className="btn btn-sm btn-ghost">全部 →</button>
         </span>
       </div>
 

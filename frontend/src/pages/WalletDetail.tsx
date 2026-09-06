@@ -17,7 +17,7 @@ export function WalletDetail() {
     try {
       setLoading(true)
       setError(null)
-      const res = await apiClient.get(`/api/wallet-history/${address}?limit=100`)
+      const res = await apiClient.get<{ trades: WalletTrade[] }>(`/api/wallet-history/${address}?limit=100`)
       setTrades(res.data.trades || [])
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } }; message?: string }

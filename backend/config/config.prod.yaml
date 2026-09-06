@@ -4,4 +4,4 @@ server:
   mode: release
 
 database:
-  dsn: "root:CHANGE_ME@tcp(127.0.0.1:3306)/copyflow?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "copyflow:EwXtnwA86zRmCRab@tcp(127.0.0.1:3306)/copyflow?charset=utf8mb4&parseTime=True&loc=Local"

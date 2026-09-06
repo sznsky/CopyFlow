@@ -13,7 +13,7 @@ export function TokenSignals() {
     try {
       setLoading(true)
       setError(null)
-      const res = await apiClient.get('/api/token-signals?limit=20&min_consensus_score=50')
+      const res = await apiClient.get<{ signals: TokenSignal[] }>('/api/token-signals?limit=20&min_consensus_score=50')
       setSignals(res.data.signals || [])
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } }; message?: string }
